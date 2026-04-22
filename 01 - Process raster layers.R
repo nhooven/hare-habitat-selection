@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 21 Apr 2026
+# LAST MODIFIED: 22 Apr 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -28,9 +28,6 @@ rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # distance 
 rast.dEdge <- rast(paste0(dir.rast, "dist_rasters/dEdge.tif"))
-rast.dDh <- rast(paste0(dir.rast, "dist_rasters/dDh.tif"))
-rast.dJsM <- rast(paste0(dir.rast, "dist_rasters/dJsM.tif"))
-rast.dMsM <- rast(paste0(dir.rast, "dist_rasters/dMsM.tif"))
 rast.dOM <- rast(paste0(dir.rast, "dist_rasters/dOM.tif"))
 
 # vegetation models
@@ -38,11 +35,10 @@ rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_stem.tif"))
 rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/post_stem.tif"))
 rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_vo.tif"))
 rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
-rast.shrub <- rast(paste0(dir.rast, "veg_pred/RF/shrub.tif"))
+rast.shrub <- rast(paste0(dir.rast, "veg_pred/RF/sr.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
-rast.tpi <-  rast(paste0(dir.rast, "Topography/tpi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
 
 # PCT
@@ -153,12 +149,12 @@ levels(rast.cover.post) <- data.frame(
 # ______________________________________________________________________________
 # 4b. Moving window calculations ---
 
-# let's do contagion and Shannon's diversity
+# let's do patch diversity
 
 # ______________________________________________________________________________
 
 # define metrics to calculate
-which.metrics <- c("lsm_l_contag", "lsm_l_shdi")
+which.metrics <- c("lsm_l_shdi")
 
 # define moving windows
 # these must be matrices with odd rows/cols
@@ -166,10 +162,17 @@ which.metrics <- c("lsm_l_contag", "lsm_l_shdi")
 mw.50 <- matrix(1, nrow = 11, ncol = 11)
 mw.100 <- matrix(1, nrow = 21, ncol = 21)
 
+# calculate metric(s) within moving windows
 lsm.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = which.metrics)
-lsm.50.pre <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
-lsm.100.pre <- window_lsm(rast.cover.pre, window = mw.50, what = which.metrics)
-lsm.100.pre <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
+lsm.50.post <- window_lsm(rast.cover.post, window = mw.50, what = which.metrics)
+lsm.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = which.metrics)
+lsm.100.post <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
+
+# save to file
+writeRaster(lsm.50.pre$layer_1$lsm_l_shdi, "data_raster/shdi_50_pre.tif", overwrite = T)
+writeRaster(lsm.50.post$layer_1$lsm_l_shdi, "data_raster/shdi_50_post.tif", overwrite = T)
+writeRaster(lsm.100.pre$layer_1$lsm_l_shdi, "data_raster/shdi_100_pre.tif", overwrite = T)
+writeRaster(lsm.100.post$layer_1$lsm_l_shdi, "data_raster/shdi_100_post.tif", overwrite = T)
 
 # ______________________________________________________________________________
 # 5. Resample as needed ----
@@ -185,9 +188,6 @@ rast.all <- c(
   
   # distance
   resample(rast.dEdge, rast.cover.pre),
-  resample(rast.dDh, rast.cover.pre),
-  resample(rast.dMsM, rast.cover.pre),
-  resample(rast.dJsM, rast.cover.pre),
   resample(rast.dOM, rast.cover.pre),
   
   # canopy
@@ -205,7 +205,6 @@ rast.all <- c(
   
   # topography
   resample(rast.twi, rast.cover.pre),
-  resample(rast.tpi, rast.cover.pre),
   resample(rast.vrm, rast.cover.pre),
   
   # treatment
@@ -216,10 +215,10 @@ rast.all <- c(
 )
 
 # change names
-names(rast.all) <- c("dEdge", "dDh", "dMsM", "dJsM", "dOM",
+names(rast.all) <- c("dEdge", "dOM",
                      "ch.pre", "ch.post", "cc.pre", "cc.post",
                      "stem.pre", "stem.post", "vo.pre", "vo.post", "shrub",
-                     "twi", "tpi", "vrm",
+                     "twi", "vrm",
                      "dPil", "dRet", "dUnitInt")
 
 plot(rast.all)
