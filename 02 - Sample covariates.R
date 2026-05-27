@@ -4,8 +4,8 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 21 Apr 2026
-# R VERSION: 4.4.3
+# LAST MODIFIED: 27 May 2026
+# R VERSION: 4.5.2
 
 # we won't standardize these yet
 
@@ -57,12 +57,8 @@ pts.off <- pts.1 %>% filter(season == "off")
 pts.on <- pts.1 %>% filter(season == "on")
 
 # ______________________________________________________________________________
-# 4. Write to .csv ----
+# 4. Write to file ----
 # ______________________________________________________________________________
 
-write.csv(pts.off, "data_cleaned/data_off.csv", row.names = F)
-write.csv(pts.on, "data_cleaned/data_on.csv", row.names = F)
-
-# is RDS quicker? (YES)
 saveRDS(pts.off, "data_cleaned/data_off.rds")
 saveRDS(pts.on, "data_cleaned/data_on.rds")

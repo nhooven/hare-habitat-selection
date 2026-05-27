@@ -4,8 +4,8 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 22 Apr 2026
-# R VERSION: 4.4.3
+# LAST MODIFIED: 27 May 2026
+# R VERSION: 4.5.2
 
 # ______________________________________________________________________________
 # 1. Load packages ----
@@ -28,23 +28,24 @@ rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # distance 
 rast.dEdge <- rast(paste0(dir.rast, "dist_rasters/dEdge.tif"))
-rast.dOM <- rast(paste0(dir.rast, "dist_rasters/dOM.tif"))
+rast.dOpen <- rast(paste0(dir.rast, "dist_rasters/dOpen.tif"))
+rast.dDM <- rast(paste0(dir.rast, "dist_rasters/dDM.tif"))
 
 # vegetation models
 rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_stem.tif"))
 rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/post_stem.tif"))
 rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_vo.tif"))
 rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
-rast.shrub <- rast(paste0(dir.rast, "veg_pred/RF/sr.tif"))
+#rast.shrub <- rast(paste0(dir.rast, "veg_pred/RF/sr.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
 
 # PCT
-rast.dPil <-  rast(paste0(dir.rast, "PCT/dPiles.tif"))
-rast.dRet <-  rast(paste0(dir.rast, "PCT/dRet.tif"))
-rast.dUnitInt <- rast(paste0(dir.rast, "PCT/dUnitInt.tif"))
+#rast.dPil <-  rast(paste0(dir.rast, "PCT/dPiles.tif"))
+#rast.dRet <-  rast(paste0(dir.rast, "PCT/dRet.tif"))
+#rast.dUnitInt <- rast(paste0(dir.rast, "PCT/dUnitInt.tif"))
 
 # ______________________________________________________________________________
 # 3. Mosaic canopy layers ----
@@ -163,16 +164,22 @@ mw.50 <- matrix(1, nrow = 11, ncol = 11)
 mw.100 <- matrix(1, nrow = 21, ncol = 21)
 
 # calculate metric(s) within moving windows
-lsm.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = which.metrics)
-lsm.50.post <- window_lsm(rast.cover.post, window = mw.50, what = which.metrics)
-lsm.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = which.metrics)
-lsm.100.post <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
+#lsm.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = which.metrics)
+#lsm.50.post <- window_lsm(rast.cover.post, window = mw.50, what = which.metrics)
+#lsm.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = which.metrics)
+#lsm.100.post <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
 
 # save to file
 writeRaster(lsm.50.pre$layer_1$lsm_l_shdi, "data_raster/shdi_50_pre.tif", overwrite = T)
 writeRaster(lsm.50.post$layer_1$lsm_l_shdi, "data_raster/shdi_50_post.tif", overwrite = T)
 writeRaster(lsm.100.pre$layer_1$lsm_l_shdi, "data_raster/shdi_100_pre.tif", overwrite = T)
 writeRaster(lsm.100.post$layer_1$lsm_l_shdi, "data_raster/shdi_100_post.tif", overwrite = T)
+
+# read
+rast.shdi.50.pre <- rast("data_raster/shdi_50_pre.tif")
+rast.shdi.50.post <- rast("data_raster/shdi_50_post.tif")
+rast.shdi.100.pre <- rast("data_raster/shdi_100_pre.tif")
+rast.shdi.100.post <- rast("data_raster/shdi_100_post.tif")
 
 # ______________________________________________________________________________
 # 5. Resample as needed ----
@@ -188,7 +195,8 @@ rast.all <- c(
   
   # distance
   resample(rast.dEdge, rast.cover.pre),
-  resample(rast.dOM, rast.cover.pre),
+  resample(rast.dOpen, rast.cover.pre),
+  resample(rast.dDM, rast.cover.pre),
   
   # canopy
   resample(rast.ch.pre, rast.cover.pre),
@@ -196,30 +204,35 @@ rast.all <- c(
   resample(rast.cc.pre, rast.cover.pre),
   resample(rast.cc.post, rast.cover.pre),
   
+  # landscape
+  resample(rast.shdi.50.pre, rast.cover.pre),
+  resample(rast.shdi.50.post, rast.cover.pre),
+  resample(rast.shdi.100.pre, rast.cover.pre),
+  resample(rast.shdi.100.post, rast.cover.pre),
+  
   # veg models
   resample(rast.stem.pre, rast.cover.pre),
   resample(rast.stem.post, rast.cover.pre),
   resample(rast.vo.pre, rast.cover.pre),
   resample(rast.vo.post, rast.cover.pre),
-  resample(rast.shrub, rast.cover.pre),
   
   # topography
   resample(rast.twi, rast.cover.pre),
-  resample(rast.vrm, rast.cover.pre),
+  resample(rast.vrm, rast.cover.pre)
   
   # treatment
-  resample(rast.dPil, rast.cover.pre),
-  resample(rast.dRet, rast.cover.pre),
-  resample(rast.dUnitInt, rast.cover.pre)
+  #resample(rast.dPil, rast.cover.pre),
+  #resample(rast.dRet, rast.cover.pre),
+  #resample(rast.dUnitInt, rast.cover.pre)
   
 )
 
 # change names
-names(rast.all) <- c("dEdge", "dOM",
+names(rast.all) <- c("dEdge", "dOpen", "dDM",
                      "ch.pre", "ch.post", "cc.pre", "cc.post",
-                     "stem.pre", "stem.post", "vo.pre", "vo.post", "shrub",
-                     "twi", "vrm",
-                     "dPil", "dRet", "dUnitInt")
+                     "shdi.50.pre", "shdi.50.post", "shdi.100.pre", "shdi.100.post",
+                     "stem.pre", "stem.post", "vo.pre", "vo.post",
+                     "twi", "vrm")
 
 plot(rast.all)
 
