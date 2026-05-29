@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 27 May 2026
+# LAST MODIFIED: 29 May 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -21,18 +21,24 @@ library(tictoc)
 
 data.off <- readRDS("data_for_model/off_data.rds")
 
+# residuals for log(AKDE)
+data.off$g.s <- residuals(lm(log(akde) ~ vo + ch + ch2 + cc + cc2 + 
+                               twi + twi2 + north + east + 
+                               dOpen + dDM + ed,
+                             data = data.off))
+
 # ______________________________________________________________________________
 # 3. Correlation ----
 # ______________________________________________________________________________
 
-covs.lin <- c("dOpen", "dDM", "ch", "cc", "vo", "twi", "vrm")
+covs.lin <- c("vo", "ch", "cc", "twi", "north", "east", "dOpen", "dDM", "ed", "g.s")
 
 cor(data.off |> dplyr::select(covs.lin), method = "spearman")
 
 # ______________________________________________________________________________
 # 3. Setup ----
 
-# we'll fit 11 random slopes
+# we'll fit 12 random slopes
 
 # ______________________________________________________________________________
 
@@ -41,6 +47,7 @@ data.off <- data.off |>
   
   mutate(
     
+    MRID = MRID,
     MRID1 = MRID,
     MRID2 = MRID,
     MRID3 = MRID,
@@ -51,7 +58,8 @@ data.off <- data.off |>
     MRID8 = MRID,
     MRID9 = MRID,
     MRID10 = MRID,
-    MRID11 = MRID
+    MRID11 = MRID,
+    MRID12 = MRID
     
   )
 
@@ -61,312 +69,319 @@ data.off <- data.off |>
 hyper.list <- list(theta = list(initial = log(1),
                                 fixed = F,
                                 prior = "pc.prec",
-                                param = c(1, 0.05)))
+                                param = c(3, 0.05)))
+
+# RS structure
+# random slopes
+f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
-# 3a. M1 - Base model ----
+# 3a. M1 - STAND + (LAND x AVAIL) + TOPO ----
 # ______________________________________________________________________________
 
 M1.form <- case ~ 
   
   # population-level effects
-  # structural (n = 5)
+  g.s +
+  
+  # STAND
   vo +
   ch + ch2 +
   cc + cc2 +
   
-  # conditions (n = 4)
-  twi + twi2 +
-  vrm + vrm2 +
+  # LAND
+  dOpen + dOpen : a.dOpen +
+  dDM + dDM : a.dDM +
+  ed + ed : a.ed +
   
-  # landscape (n = 2)
-  dOpen +
-  dDM +
+  # TOPO
+  twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
-  
-  # random slopes
-  f(MRID1, vo, values = unique(MRID), model = "iid", hyper = hyper.list) +
-  f(MRID2, ch, model = "iid", hyper = hyper.list) +
-  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
-  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
-  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
-  f(MRID6, twi, model = "iid", hyper = hyper.list) +
-  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
-  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
-  f(MRID11, dDM, model = "iid", hyper = hyper.list)
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
 
 # ______________________________________________________________________________
-# 3b. M2 - Functional response model ----
+# 3b. M2 - (STAND x AVAIL) + (LAND x AVAIL) + TOPO ----
 # ______________________________________________________________________________
 
 M2.form <- case ~ 
   
   # population-level effects
-  # structural (n = 5)
-  vo +
-  ch + ch2 +
-  cc + cc2 +
+  g.s +
   
-  # conditions (n = 4)
-  twi + twi2 +
-  vrm + vrm2 +
+  # STAND
+  vo + vo : a.vo +
+  ch + ch : a.ch + ch2 + ch2 : a.ch +
+  ch + cc : a.cc + cc2 + cc2 : a.cc +
   
-  # landscape (n = 2)
-  dOpen +
-  dDM +
+  # LAND
+  dOpen + dOpen : a.dOpen +
+  dDM + dDM : a.dDM +
+  ed + ed : a.ed +
   
-  # functional responses (n = 5)
-  vo : a.vo +
-  ch : a.ch + ch2 : a.ch +
-  cc : a.cc + cc2 : a.cc +
+  # TOPO
+  twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
-  
-  # random slopes
-  f(MRID1, vo, model = "iid", hyper = hyper.list) +
-  f(MRID2, ch, model = "iid", hyper = hyper.list) +
-  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
-  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
-  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
-  f(MRID6, twi, model = "iid", hyper = hyper.list) +
-  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
-  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
-  f(MRID11, dDM, model = "iid", hyper = hyper.list)
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
 
 # ______________________________________________________________________________
-# 3c. M3 - Treatment model ----
+# 3c. M3 - (STAND X TRT) + (LAND x AVAIL) + TOPO ----
 # ______________________________________________________________________________
 
 M3.form <- case ~ 
   
   # population-level effects
-  # structural (n = 5)
-  vo +
-  ch + ch2 +
-  cc + cc2 +
+  g.s +
   
-  # conditions (n = 4)
-  twi + twi2 +
-  vrm + vrm2 +
+  # STAND
+  vo + 
+    vo : year.trt : ret + 
+    vo : year.trt : pil +
+  ch + 
+    ch : year.trt : ret + 
+    ch : year.trt : pil + 
+  ch2 + 
+    ch2 : year.trt : ret + 
+    ch2 : year.trt : pil + 
+  cc + 
+    cc : year.trt : ret + 
+    cc : year.trt : pil + 
+  cc2 + 
+    cc2 : year.trt : ret + 
+    cc2 : year.trt : pil + 
   
-  # landscape (n = 2)
-  dOpen +
-  dDM +
+  # LAND
+  dOpen + dOpen : a.dOpen +
+  dDM + dDM : a.dDM +
+  ed + ed : a.ed +
   
-  # treatment (n = 6)
-  vo : year.trt : ret +
-  vo : year.trt : pil +
-  ch : year.trt : ret +
-  ch : year.trt : pil +
-  ch2 : year.trt : ret +
-  ch2 : year.trt : pil +
-  cc : year.trt : ret +
-  cc : year.trt : pil +
-  cc2 : year.trt : ret +
-  cc2 : year.trt : pil +
+  # TOPO
+  twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
-  
-  # random slopes
-  f(MRID1, vo, model = "iid", hyper = hyper.list) +
-  f(MRID2, ch, model = "iid", hyper = hyper.list) +
-  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
-  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
-  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
-  f(MRID6, twi, model = "iid", hyper = hyper.list) +
-  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
-  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
-  f(MRID11, dDM, model = "iid", hyper = hyper.list)
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
 
 # ______________________________________________________________________________
-# 3d. M4 - Functional x treatment responses model ----
+# 3d. M4 - STAND + (LAND x AVAIL x TRT) + TOPO ----
 # ______________________________________________________________________________
 
 M4.form <- case ~ 
   
   # population-level effects
-  # structural (n = 5)
+  g.s +
+  
+  # STAND
   vo +
   ch + ch2 +
   cc + cc2 +
   
-  # conditions (n = 4)
-  twi + twi2 +
-  vrm + vrm2 +
+  # LAND
+  dOpen + dOpen : a.dOpen + 
+    dOpen : a.dOpen : year.trt : ret +
+    dOpen : a.dOpen : year.trt : pil +
+  dDM + dDM : a.dDM +
+    dDM : a.dDM : year.trt : ret +
+    dDM : a.dDM : year.trt : pil +
+  ed + ed : a.ed +
+    ed : a.ed : year.trt : ret +
+    ed : a.ed : year.trt : pil +
   
-  # landscape (n = 2)
-  dOpen +
-  dDM +
-  
-  # treatment (n = 6)
-  vo : year.trt : ret : a.vo +
-  vo : year.trt : pil : a.vo +
-  ch : year.trt : ret : a.ch +
-  ch : year.trt : pil : a.ch +
-  ch2 : year.trt : ret : a.ch +
-  ch2 : year.trt : pil : a.ch +
-  cc : year.trt : ret : a.cc +
-  cc : year.trt : pil : a.cc +
-  cc2 : year.trt : ret : a.cc +
-  cc2 : year.trt : pil : a.cc +
+  # TOPO
+  twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+
+# ______________________________________________________________________________
+# 3e. M5 - (STAND x AVAIL x TRT) + (LAND x AVAIL) + TOPO ----
+# ______________________________________________________________________________
+
+M5.form <- case ~ 
   
-  # random slopes
-  f(MRID1, vo, model = "iid", hyper = hyper.list) +
-  f(MRID2, ch, model = "iid", hyper = hyper.list) +
-  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
-  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
-  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
-  f(MRID6, twi, model = "iid", hyper = hyper.list) +
-  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
-  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
-  f(MRID11, dDM, model = "iid", hyper = hyper.list)
+  # population-level effects
+  g.s +
+  
+  # STAND
+  vo + vo : a.vo +
+    vo : a.vo : year.trt : ret + 
+    vo : a.vo : year.trt : pil +
+  ch + ch : a.ch +
+    ch : a.ch : year.trt : ret + 
+    ch : a.ch : year.trt : pil + 
+  ch2 + ch2 : a.ch +
+    ch2 : a.ch : year.trt : ret + 
+    ch2 : a.ch : year.trt : pil + 
+  cc + cc : a.cc +
+    cc : a.cc : year.trt : ret + 
+    cc : a.cc : year.trt : pil + 
+  cc2 + cc2 : a.cc +
+    cc2 : a.cc : year.trt : ret + 
+    cc2 : a.cc : year.trt : pil + 
+  
+  # LAND
+  dOpen + dOpen : a.dOpen + 
+  dDM + dDM : a.dDM +
+  ed + ed : a.ed +
+  
+  # TOPO
+  twi + twi2 + north + east +
+  
+  # random intercepts
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+
+# ______________________________________________________________________________
+# 3f. M6 - (STAND x AVAIL x TRT) + (LAND x AVAIL x TRT) + TOPO ----
+# ______________________________________________________________________________
+
+M6.form <- case ~ 
+  
+  # population-level effects
+  g.s +
+  
+  # STAND
+  vo + vo : a.vo +
+    vo : a.vo : year.trt : ret + 
+    vo : a.vo : year.trt : pil +
+  ch + ch : a.ch +
+    ch : a.ch : year.trt : ret + 
+    ch : a.ch : year.trt : pil + 
+  ch2 + ch2 : a.ch +
+    ch2 : a.ch : year.trt : ret + 
+    ch2 : a.ch : year.trt : pil + 
+  cc + cc : a.cc +
+    cc : a.cc : year.trt : ret + 
+    cc : a.cc : year.trt : pil + 
+  cc2 + cc2 : a.cc +
+    cc2 : a.cc : year.trt : ret + 
+    cc2 : a.cc : year.trt : pil + 
+  
+  # LAND
+  dOpen + dOpen : a.dOpen + 
+    dOpen : a.dOpen : year.trt : ret +
+    dOpen : a.dOpen : year.trt : pil +
+  dDM + dDM : a.dDM +
+    dDM : a.dDM : year.trt : ret +
+    dDM : a.dDM : year.trt : pil +
+  ed + ed : a.ed +
+    ed : a.ed : year.trt : ret +
+    ed : a.ed : year.trt : pil +
+  
+  # TOPO
+  twi + twi2 + north + east +
+  
+  # random intercepts
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
 
 # ______________________________________________________________________________
 # 4. Fit models ----
+
+compute.list <- list(cpo = T,      # CPO/PIT (similar to PPPvals)
+                     dic = T)      # more appropriate than WAIC
+
 # ______________________________________________________________________________
-# 4a. M1 - Base model ----
 
-# 151 s
-
-# ______________________________________________________________________________
-
-tic()
 M1.fit <- inla(M1.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
-               control.compute = list(cpo = T,
-                                      dic = T))
-toc()
-  
-  
-summary(M1.fit)
+               control.compute = compute.list)  
 
-# 27 May 2026
-# Fit all models with CPO/PIT (adds a little bit of time)
-
-# save base model for visualization
-saveRDS(M1.fit, "model_tests/M1_fit.rds")
-
-# ______________________________________________________________________________
-# 4b. M2 - Functional responses ----
-
-# 193 s
-
-# ______________________________________________________________________________
-
-tic()
 M2.fit <- inla(M2.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
-               control.compute = list(cpo = T,
-                                      dic = T))
-toc()
+               control.compute = compute.list)  
 
-
-summary(M2.fit)
-
-# ______________________________________________________________________________
-# 4c. M3 - Treatment responses ----
-
-# 180 s
-
-# ______________________________________________________________________________
-
-tic()
 M3.fit <- inla(M3.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
-               control.compute = list(cpo = T,
-                                      dic = T))
-toc()
+               control.compute = compute.list)  
 
-
-summary(M3.fit)
-
-# ______________________________________________________________________________
-# 4d. M4 - Functional x treatment responses ----
-
-# 209 s
-
-# ______________________________________________________________________________
-
-tic()
 M4.fit <- inla(M4.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
-               control.compute = list(cpo = T,
-                                      dic = T))
-toc()
+               control.compute = compute.list)  
 
+M5.fit <- inla(M5.form,
+               weights = data.off$w,
+               family = "binomial",
+               data = data.off,
+               control.compute = compute.list)  
 
-summary(M4.fit)
+M6.fit <- inla(M6.form,
+               weights = data.off$w,
+               family = "binomial",
+               data = data.off,
+               control.compute = compute.list)  
 
 # ______________________________________________________________________________
-# 05. Model selection with DIC ----
+# 5. Model comparison ----
 
 # function
-inla_dic_table <- function (x) {
+inla_comp_table <- function (x) {
   
   # x is a list of models
-  dic.table <- data.frame()
+  comp.table <- data.frame()
   
   for (i in 1:length(x)) {
     
     model.focal <- x[[i]]
     
-    dic.table.focal <- data.frame(
+    comp.table.focal <- data.frame(
       
-      Model = case_when(i == 1 ~ "base",
-                        i == 2 ~ "fr",
-                        i == 3 ~ "trt",
-                        i == 4 ~ "fr x trt"),
+      Model = case_when(i == 1 ~ "Land FR",
+                        i == 2 ~ "Stand FR",
+                        i == 3 ~ "Stand TRT",
+                        i == 4 ~ "Land FR x TRT",
+                        i == 5 ~ "Stand FR x TRT",
+                        i == 6 ~ "Overall FR x TRT"),
       k.eff = model.focal$dic$p.eff,
       DIC = model.focal$dic$dic,
+      CPO = -sum(log(model.focal$cpo$cpo)),
       mLL = model.focal$mlik[2]
       
     )
     
     # bind in 
-    dic.table <- rbind(dic.table, dic.table.focal)
+    comp.table <- rbind(comp.table, comp.table.focal)
     
   }
   
-  # compute dWAIC and arrange
-  dic.table <- dic.table |>
+  # compute dDIC and arrange
+  comp.table <- comp.table |>
     
     mutate(dDIC = DIC - min(DIC)) |>
     
     # arrange
     arrange(dDIC) |>
     
-    dplyr::select(Model, k.eff, DIC, dDIC, mLL)
+    dplyr::select(Model, k.eff, DIC, dDIC, CPO, mLL)
   
-  return(dic.table)
+  return(comp.table)
   
 }
 
 # ______________________________________________________________________________
 
-inla_dic_table(list(M1.fit,
-                    M2.fit,
-                    M3.fit,
-                    M4.fit))
+inla_comp_table(list(M1.fit,
+                     M2.fit,
+                     M3.fit,
+                     M4.fit,
+                     M5.fit,
+                     M6.fit))
+
+# without RS, M6 is definitely the best

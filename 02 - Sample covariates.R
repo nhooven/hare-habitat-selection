@@ -4,10 +4,8 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 27 May 2026
+# LAST MODIFIED: 29 May 2026
 # R VERSION: 4.5.2
-
-# we won't standardize these yet
 
 # ______________________________________________________________________________
 # 1. Load packages ----

@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 27 May 2026
+# LAST MODIFIED: 29 May 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -27,7 +27,6 @@ rast.cover.pre <- rast(paste0(dir.rast, "cover_type/cover_type_pre.tif"))
 rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # distance 
-rast.dEdge <- rast(paste0(dir.rast, "dist_rasters/dEdge.tif"))
 rast.dOpen <- rast(paste0(dir.rast, "dist_rasters/dOpen.tif"))
 rast.dDM <- rast(paste0(dir.rast, "dist_rasters/dDM.tif"))
 
@@ -41,6 +40,8 @@ rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
+rast.north <-  rast(paste0(dir.rast, "Topography/northness.tif"))
+rast.east <-  rast(paste0(dir.rast, "Topography/eastness.tif"))
 
 # PCT
 #rast.dPil <-  rast(paste0(dir.rast, "PCT/dPiles.tif"))
@@ -147,39 +148,61 @@ levels(rast.cover.post) <- data.frame(
   
 )
 
+# hard edge density
+# mature forest vs all other classes (thus this won't change with treatment)
+#rast.cover.edge <- rast.cover.pre
+
+#mat.reclass.edge <- matrix(c(1, 1,
+#                             2, 1,
+#                             3, 1,
+#                             4, 2,
+#                             5, 2,
+#                             6, 2,
+#                             7, 2,
+#                             8, 1),
+#                           nrow = 8,
+#                           byrow = T)
+
+#rast.cover.edge <- classify(rast.cover.edge, rcl = mat.reclass.edge)
+
 # ______________________________________________________________________________
 # 4b. Moving window calculations ---
-
-# let's do patch diversity
-
 # ______________________________________________________________________________
-
-# define metrics to calculate
-which.metrics <- c("lsm_l_shdi")
 
 # define moving windows
 # these must be matrices with odd rows/cols
 # each pixel is 10 m
-mw.50 <- matrix(1, nrow = 11, ncol = 11)
-mw.100 <- matrix(1, nrow = 21, ncol = 21)
+#mw.50 <- matrix(1, nrow = 11, ncol = 11)
+#mw.100 <- matrix(1, nrow = 21, ncol = 21)
 
 # calculate metric(s) within moving windows
-#lsm.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = which.metrics)
-#lsm.50.post <- window_lsm(rast.cover.post, window = mw.50, what = which.metrics)
-#lsm.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = which.metrics)
-#lsm.100.post <- window_lsm(rast.cover.post, window = mw.100, what = which.metrics)
+# patch diversity
+#shdi.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = "lsm_l_shdi")
+#shdi.50.post <- window_lsm(rast.cover.post, window = mw.50, what = "lsm_l_shdi")
+#shdi.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = "lsm_l_shdi")
+#shdi.100.post <- window_lsm(rast.cover.post, window = mw.100, what = "lsm_l_shdi")
 
 # save to file
-writeRaster(lsm.50.pre$layer_1$lsm_l_shdi, "data_raster/shdi_50_pre.tif", overwrite = T)
-writeRaster(lsm.50.post$layer_1$lsm_l_shdi, "data_raster/shdi_50_post.tif", overwrite = T)
-writeRaster(lsm.100.pre$layer_1$lsm_l_shdi, "data_raster/shdi_100_pre.tif", overwrite = T)
-writeRaster(lsm.100.post$layer_1$lsm_l_shdi, "data_raster/shdi_100_post.tif", overwrite = T)
+#writeRaster(lsm.50.pre$layer_1$lsm_l_shdi, "data_raster/shdi_50_pre.tif", overwrite = T)
+#writeRaster(lsm.50.post$layer_1$lsm_l_shdi, "data_raster/shdi_50_post.tif", overwrite = T)
+#writeRaster(lsm.100.pre$layer_1$lsm_l_shdi, "data_raster/shdi_100_pre.tif", overwrite = T)
+#writeRaster(lsm.100.post$layer_1$lsm_l_shdi, "data_raster/shdi_100_post.tif", overwrite = T)
 
 # read
-rast.shdi.50.pre <- rast("data_raster/shdi_50_pre.tif")
-rast.shdi.50.post <- rast("data_raster/shdi_50_post.tif")
+#rast.shdi.50.pre <- rast("data_raster/shdi_50_pre.tif")
+#rast.shdi.50.post <- rast("data_raster/shdi_50_post.tif")
 rast.shdi.100.pre <- rast("data_raster/shdi_100_pre.tif")
 rast.shdi.100.post <- rast("data_raster/shdi_100_post.tif")
+
+# edge density (m/ha)
+# write to raster to calculate in Fragstats
+#writeRaster(rast.cover.edge, "data_raster/cover_edge.tif", overwrite = T)
+
+# read (100 m)
+rast.ed <- rast("data_raster/ed_100.tif")
+
+# replace -999 with NA
+rast.ed <- subst(rast.ed, -999, NA)
 
 # ______________________________________________________________________________
 # 5. Resample as needed ----
@@ -194,7 +217,6 @@ ext(rast.cover.pre)
 rast.all <- c(
   
   # distance
-  resample(rast.dEdge, rast.cover.pre),
   resample(rast.dOpen, rast.cover.pre),
   resample(rast.dDM, rast.cover.pre),
   
@@ -205,10 +227,9 @@ rast.all <- c(
   resample(rast.cc.post, rast.cover.pre),
   
   # landscape
-  resample(rast.shdi.50.pre, rast.cover.pre),
-  resample(rast.shdi.50.post, rast.cover.pre),
-  resample(rast.shdi.100.pre, rast.cover.pre),
-  resample(rast.shdi.100.post, rast.cover.pre),
+  #resample(rast.shdi.100.pre, rast.cover.pre),
+  #resample(rast.shdi.100.post, rast.cover.pre),
+  resample(rast.ed, rast.cover.pre),
   
   # veg models
   resample(rast.stem.pre, rast.cover.pre),
@@ -218,21 +239,22 @@ rast.all <- c(
   
   # topography
   resample(rast.twi, rast.cover.pre),
-  resample(rast.vrm, rast.cover.pre)
-  
-  # treatment
-  #resample(rast.dPil, rast.cover.pre),
-  #resample(rast.dRet, rast.cover.pre),
-  #resample(rast.dUnitInt, rast.cover.pre)
+  resample(rast.vrm, rast.cover.pre),
+  resample(rast.north, rast.cover.pre),
+  resample(rast.east, rast.cover.pre)
   
 )
 
 # change names
-names(rast.all) <- c("dEdge", "dOpen", "dDM",
-                     "ch.pre", "ch.post", "cc.pre", "cc.post",
-                     "shdi.50.pre", "shdi.50.post", "shdi.100.pre", "shdi.100.post",
-                     "stem.pre", "stem.post", "vo.pre", "vo.post",
-                     "twi", "vrm")
+names(rast.all) <- c(
+  
+  "dOpen", "dDM",
+  "ch.pre", "ch.post", "cc.pre", "cc.post",
+  "ed",
+  "stem.pre", "stem.post", "vo.pre", "vo.post",
+  "twi", "vrm", "north", "east"
+  
+  )
 
 plot(rast.all)
 
