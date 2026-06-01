@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
-# COMPLETED: 
-# LAST MODIFIED: 29 May 2026
+# COMPLETED: 01 Jun 2026
+# LAST MODIFIED: 01 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -272,7 +272,7 @@ data.off.3 <- transform_covs(data.off.cov)
 data.on.3 <- transform_covs(data.on.cov)
 
 # ______________________________________________________________________________
-# 6. Save means/SDs ----
+# 6. Save means, SDs, and ranges ----
 
 # function
 mean_sds <- function (x) {
@@ -286,7 +286,9 @@ mean_sds <- function (x) {
     summarize(
       
       mean = mean(value),
-      sd = sd(value)
+      sd = sd(value),
+      min = min(value),
+      max = max(value)
       
     )
   
