@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 29 May 2026
+# LAST MODIFIED: 01 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -109,7 +109,21 @@ M1.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 3b. M2 - (STAND x AVAIL) + (LAND x AVAIL) + TOPO ----
@@ -134,7 +148,21 @@ M2.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 3c. M3 - (STAND X TRT) + (LAND x AVAIL) + TOPO ----
@@ -171,7 +199,21 @@ M3.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 3d. M4 - STAND + (LAND x AVAIL x TRT) + TOPO ----
@@ -202,7 +244,21 @@ M4.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 3e. M5 - (STAND x AVAIL x TRT) + (LAND x AVAIL) + TOPO ----
@@ -239,7 +295,21 @@ M5.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 3f. M6 - (STAND x AVAIL x TRT) + (LAND x AVAIL x TRT) + TOPO ----
@@ -282,7 +352,21 @@ M6.form <- case ~
   twi + twi2 + north + east +
   
   # random intercepts
-  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T)))
+  f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
+  
+  # random slopes
+  f(MRID1, vo, model = "iid", hyper = hyper.list) +
+  f(MRID2, ch, model = "iid", hyper = hyper.list) +
+  f(MRID3, ch2, model = "iid", hyper = hyper.list) + 
+  f(MRID4, cc, model = "iid", hyper = hyper.list) + 
+  f(MRID5, cc2, model = "iid", hyper = hyper.list) +
+  f(MRID6, twi, model = "iid", hyper = hyper.list) +
+  f(MRID7, twi2, model = "iid", hyper = hyper.list) +
+  f(MRID8, north, model = "iid", hyper = hyper.list) +
+  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(MRID11, dDM, model = "iid", hyper = hyper.list) +
+  f(MRID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 4. Fit models ----
@@ -385,3 +469,11 @@ inla_comp_table(list(M1.fit,
                      M6.fit))
 
 # without RS, M6 is definitely the best
+# with RS, M6 is slightly better than M4 
+
+# ______________________________________________________________________________
+# 6. Save to file ----
+# ______________________________________________________________________________
+
+saveRDS(M6.fit, "model_tests/off_M6.rds")
+saveRDS(M4.fit, "model_tests/off_M4.rds")
