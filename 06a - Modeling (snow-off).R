@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 01 Jun 2026
+# LAST MODIFIED: 02 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -23,7 +23,7 @@ data.off <- readRDS("data_for_model/off_data.rds")
 
 # residuals for log(AKDE)
 data.off$g.s <- residuals(lm(log(akde) ~ vo + ch + ch2 + cc + cc2 + 
-                               twi + twi2 + north + east + 
+                               twi + twi2 + vrm + vrm2 + 
                                dOpen + dDM + ed,
                              data = data.off))
 
@@ -31,7 +31,7 @@ data.off$g.s <- residuals(lm(log(akde) ~ vo + ch + ch2 + cc + cc2 +
 # 3. Correlation ----
 # ______________________________________________________________________________
 
-covs.lin <- c("vo", "ch", "cc", "twi", "north", "east", "dOpen", "dDM", "ed", "g.s")
+covs.lin <- c("vo", "ch", "cc", "twi", "vrm", "dOpen", "dDM", "ed", "g.s")
 
 cor(data.off |> dplyr::select(covs.lin), method = "spearman")
 
@@ -80,8 +80,8 @@ f(MRID1, vo, model = "iid", hyper = hyper.list) +
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -106,7 +106,7 @@ M1.form <- case ~
   ed + ed : a.ed +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -119,8 +119,8 @@ M1.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -145,7 +145,7 @@ M2.form <- case ~
   ed + ed : a.ed +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -158,8 +158,8 @@ M2.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -196,7 +196,7 @@ M3.form <- case ~
   ed + ed : a.ed +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -209,8 +209,8 @@ M3.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -231,17 +231,23 @@ M4.form <- case ~
   
   # LAND
   dOpen + dOpen : a.dOpen + 
+    dOpen : year.trt : ret +
+    dOpen : year.trt : pil +
     dOpen : a.dOpen : year.trt : ret +
     dOpen : a.dOpen : year.trt : pil +
   dDM + dDM : a.dDM +
+    dDM : year.trt : ret +
+    dDM : year.trt : pil +
     dDM : a.dDM : year.trt : ret +
     dDM : a.dDM : year.trt : pil +
   ed + ed : a.ed +
+    ed : year.trt : ret +
+    ed : year.trt : pil +
     ed : a.ed : year.trt : ret +
     ed : a.ed : year.trt : pil +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -254,8 +260,8 @@ M4.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -271,18 +277,28 @@ M5.form <- case ~
   
   # STAND
   vo + vo : a.vo +
+    vo : year.trt : ret +
+    vo : year.trt : pil +
     vo : a.vo : year.trt : ret + 
     vo : a.vo : year.trt : pil +
   ch + ch : a.ch +
+    ch : year.trt : ret +
+    ch : year.trt : pil +
     ch : a.ch : year.trt : ret + 
     ch : a.ch : year.trt : pil + 
   ch2 + ch2 : a.ch +
+    ch2 : year.trt : ret +
+    ch2 : year.trt : pil +
     ch2 : a.ch : year.trt : ret + 
     ch2 : a.ch : year.trt : pil + 
   cc + cc : a.cc +
+    cc : year.trt : ret +
+    cc : year.trt : pil +
     cc : a.cc : year.trt : ret + 
     cc : a.cc : year.trt : pil + 
   cc2 + cc2 : a.cc +
+    cc2 : year.trt : ret +
+    cc2 : year.trt : pil +
     cc2 : a.cc : year.trt : ret + 
     cc2 : a.cc : year.trt : pil + 
   
@@ -292,7 +308,7 @@ M5.form <- case ~
   ed + ed : a.ed +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -305,8 +321,8 @@ M5.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -322,34 +338,50 @@ M6.form <- case ~
   
   # STAND
   vo + vo : a.vo +
+    vo : year.trt : ret +
+    vo : year.trt : pil +
     vo : a.vo : year.trt : ret + 
     vo : a.vo : year.trt : pil +
   ch + ch : a.ch +
+    ch : year.trt : ret +
+    ch : year.trt : pil +
     ch : a.ch : year.trt : ret + 
     ch : a.ch : year.trt : pil + 
   ch2 + ch2 : a.ch +
+    ch2 : year.trt : ret +
+    ch2 : year.trt : pil +
     ch2 : a.ch : year.trt : ret + 
     ch2 : a.ch : year.trt : pil + 
   cc + cc : a.cc +
+    cc : year.trt : ret +
+    cc : year.trt : pil +
     cc : a.cc : year.trt : ret + 
     cc : a.cc : year.trt : pil + 
   cc2 + cc2 : a.cc +
+    cc2 : year.trt : ret +
+    cc2 : year.trt : pil +
     cc2 : a.cc : year.trt : ret + 
     cc2 : a.cc : year.trt : pil + 
   
   # LAND
   dOpen + dOpen : a.dOpen + 
+    dOpen : year.trt : ret +
+    dOpen : year.trt : pil +
     dOpen : a.dOpen : year.trt : ret +
     dOpen : a.dOpen : year.trt : pil +
   dDM + dDM : a.dDM +
+    dDM : year.trt : ret +
+    dDM : year.trt : pil +
     dDM : a.dDM : year.trt : ret +
     dDM : a.dDM : year.trt : pil +
   ed + ed : a.ed +
+    ed : year.trt : ret +
+    ed : year.trt : pil +
     ed : a.ed : year.trt : ret +
     ed : a.ed : year.trt : pil +
   
   # TOPO
-  twi + twi2 + north + east +
+  twi + twi2 + vrm + vrm2 +
   
   # random intercepts
   f(MRID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -362,8 +394,8 @@ M6.form <- case ~
   f(MRID5, cc2, model = "iid", hyper = hyper.list) +
   f(MRID6, twi, model = "iid", hyper = hyper.list) +
   f(MRID7, twi2, model = "iid", hyper = hyper.list) +
-  f(MRID8, north, model = "iid", hyper = hyper.list) +
-  f(MRID9, east, model = "iid", hyper = hyper.list) +
+  f(MRID8, vrm, model = "iid", hyper = hyper.list) +
+  f(MRID9, vrm2, model = "iid", hyper = hyper.list) +
   f(MRID10, dOpen, model = "iid", hyper = hyper.list) +
   f(MRID11, dDM, model = "iid", hyper = hyper.list) +
   f(MRID12, ed, model = "iid", hyper = hyper.list)
@@ -416,7 +448,7 @@ M6.fit <- inla(M6.form,
 # 5. Model comparison ----
 
 # function
-inla_comp_table <- function (x) {
+inla_cpo_table <- function (x) {
   
   # x is a list of models
   comp.table <- data.frame()
@@ -433,8 +465,7 @@ inla_comp_table <- function (x) {
                         i == 4 ~ "Land FR x TRT",
                         i == 5 ~ "Stand FR x TRT",
                         i == 6 ~ "Overall FR x TRT"),
-      k.eff = model.focal$dic$p.eff,
-      DIC = model.focal$dic$dic,
+      k.fixed = nrow(model.focal$summary.fixed),
       CPO = -sum(log(model.focal$cpo$cpo)),
       mLL = model.focal$mlik[2]
       
@@ -448,12 +479,12 @@ inla_comp_table <- function (x) {
   # compute dDIC and arrange
   comp.table <- comp.table |>
     
-    mutate(dDIC = DIC - min(DIC)) |>
+    mutate(dCPO = max(CPO) - CPO) |>
     
     # arrange
-    arrange(dDIC) |>
+    arrange(dCPO) |>
     
-    dplyr::select(Model, k.eff, DIC, dDIC, CPO, mLL)
+    dplyr::select(Model, k.fixed, CPO, dCPO, mLL)
   
   return(comp.table)
   
@@ -461,19 +492,20 @@ inla_comp_table <- function (x) {
 
 # ______________________________________________________________________________
 
-inla_comp_table(list(M1.fit,
+inla_cpo_table(list(M1.fit,
                      M2.fit,
                      M3.fit,
                      M4.fit,
                      M5.fit,
                      M6.fit))
 
-# without RS, M6 is definitely the best
-# with RS, M6 is slightly better than M4 
+# weird issues with effective parameters for M4 (DIC problem for IPP models?)
+# M4 performs the best here
+
+summary(M4.fit)
 
 # ______________________________________________________________________________
 # 6. Save to file ----
 # ______________________________________________________________________________
 
-saveRDS(M6.fit, "model_tests/off_M6.rds")
 saveRDS(M4.fit, "model_tests/off_M4.rds")
