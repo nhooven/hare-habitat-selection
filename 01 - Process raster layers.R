@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 29 May 2026
+# LAST MODIFIED: 02 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -14,6 +14,7 @@
 library(tidyverse)
 library(terra)
 library(landscapemetrics)
+library(sf)
 
 # ______________________________________________________________________________
 # 2. Read rasters ----
@@ -35,13 +36,10 @@ rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_stem.tif"))
 rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/post_stem.tif"))
 rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_vo.tif"))
 rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
-#rast.shrub <- rast(paste0(dir.rast, "veg_pred/RF/sr.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
-rast.north <-  rast(paste0(dir.rast, "Topography/northness.tif"))
-rast.east <-  rast(paste0(dir.rast, "Topography/eastness.tif"))
 
 # PCT
 #rast.dPil <-  rast(paste0(dir.rast, "PCT/dPiles.tif"))
@@ -112,6 +110,17 @@ rast.cc.pre <- merge(canopy.pre$cc, canopy.2016$cc) |> project(rast.cover.pre)
 # post
 rast.ch.post <- merge(canopy.post$ch, canopy.2016$ch) |> project(rast.cover.post)
 rast.cc.post <- merge(canopy.post$cc, canopy.2016$cc) |> project(rast.cover.post)
+
+# fill in blanks (between lidar tiles)
+rast.ch.pre <- focal(rast.ch.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
+rast.cc.pre <- focal(rast.cc.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
+rast.ch.post <- focal(rast.ch.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
+rast.cc.post <- focal(rast.cc.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
+
+# clamp rast.ch.post to highest real quantile
+ch.post.quant <- quantile(values(rast.ch.post), na.rm = T, prob = 0.9999)
+
+rast.ch.post <- clamp(rast.ch.post, upper = ch.post.quant)
 
 # ______________________________________________________________________________
 # 4. Landscape metrics on cover types ----
@@ -205,6 +214,61 @@ rast.ed <- rast("data_raster/ed_100.tif")
 rast.ed <- subst(rast.ed, -999, NA)
 
 # ______________________________________________________________________________
+# 5. Closest unit raster ----
+
+# this is a sensible way to empirically determine which "unit" each animal
+# is most closely aligned to
+
+# first, we'll calculate distance rasters for every unit, then
+# select the (integer) value for every LSF pixel for the smallest distance
+
+# then later we can attribute a value to every available point and take the mode
+# as the "corrected" unit
+
+# ______________________________________________________________________________
+
+# unit shapefile
+units <- st_read("D:/hare_project/data_spatial/Units/units_fixed_utm/units_fixed_utm.shp") |>
+  
+  dplyr::select(name, geometry) |>
+  
+  arrange(name)
+
+all.dists <- rast()
+
+for (i in 1:12) {
+  
+  focal.unit <- units |> slice(i) |> vect()
+  
+  focal.dist <- distance(rast.cover.pre, focal.unit)
+  
+  all.dists <- c(all.dists, focal.dist)
+  
+}
+
+# names
+names(all.dists) <- units$name
+
+# find which.min
+# make matrix of values
+val.mat <- matrix(NA, nrow = length(values(all.dists[[1]])), ncol = 12)
+
+for (i in 1:12) {
+  
+  val.mat[ , i] <- values(all.dists[[i]])
+  
+}
+
+min.dists <- apply(val.mat, 1, which.min)
+
+rast.min.dists <- rast(all.dists[[1]], vals = min.dists)
+
+plot(rast.min.dists)
+
+# write
+writeRaster(rast.min.dists, "data_raster/unit_prox.tif")
+
+# ______________________________________________________________________________
 # 5. Resample as needed ----
 
 # our target extent:
@@ -216,20 +280,16 @@ ext(rast.cover.pre)
 
 rast.all <- c(
   
-  # distance
+  # landscape
   resample(rast.dOpen, rast.cover.pre),
   resample(rast.dDM, rast.cover.pre),
+  resample(rast.ed, rast.cover.pre),
   
   # canopy
   resample(rast.ch.pre, rast.cover.pre),
   resample(rast.ch.post, rast.cover.pre),
   resample(rast.cc.pre, rast.cover.pre),
   resample(rast.cc.post, rast.cover.pre),
-  
-  # landscape
-  #resample(rast.shdi.100.pre, rast.cover.pre),
-  #resample(rast.shdi.100.post, rast.cover.pre),
-  resample(rast.ed, rast.cover.pre),
   
   # veg models
   resample(rast.stem.pre, rast.cover.pre),
@@ -239,20 +299,17 @@ rast.all <- c(
   
   # topography
   resample(rast.twi, rast.cover.pre),
-  resample(rast.vrm, rast.cover.pre),
-  resample(rast.north, rast.cover.pre),
-  resample(rast.east, rast.cover.pre)
+  resample(rast.vrm, rast.cover.pre)
   
 )
 
 # change names
 names(rast.all) <- c(
   
-  "dOpen", "dDM",
+  "dOpen", "dDM", "ed",
   "ch.pre", "ch.post", "cc.pre", "cc.post",
-  "ed",
   "stem.pre", "stem.post", "vo.pre", "vo.post",
-  "twi", "vrm", "north", "east"
+  "twi", "vrm"
   
   )
 
