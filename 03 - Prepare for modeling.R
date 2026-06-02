@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 01 Jun 2026
+# LAST MODIFIED: 02 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -86,8 +86,8 @@ prep_1 <- function (x) {
         
       ),
       
-      ret = ifelse(trt == "RET", 1, 0),
-      pil = ifelse(trt == "PIL", 1, 0)
+      ret = ifelse(c.trt == "RET", 1, 0),
+      pil = ifelse(c.trt == "PIL", 1, 0)
       
     ) |>
     
@@ -96,6 +96,7 @@ prep_1 <- function (x) {
       
       -c(year,
          trt,
+         c.trt,
          season,
          ch.pre,
          ch.post,
@@ -119,9 +120,7 @@ prep_1 <- function (x) {
         vo,
         stem,
         twi,
-        vrm,
-        north,
-        east
+        vrm
         
       )
       
@@ -156,8 +155,6 @@ prep_1 <- function (x) {
       cc,
       twi,
       vrm,
-      north,
-      east,
       dOpen,
       dDM,
       ed
@@ -226,23 +223,13 @@ transform_covs <- function (x) {
   x.1 <- x |>
     
     # covariate transformations
-    # log
-    mutate(
-      
-      dOpen = log(dOpen + 1),
-      dDM = log(dDM + 1)
-      
-      ) |>
-    
     # squared
     mutate(
       
       ch2 = ch^2,
       cc2 = cc^2,
       twi2 = twi^2,
-      vrm2 = vrm^2,
-      north2 = north^2,
-      east2 = east^2
+      vrm2 = vrm^2
         
       ) 
   
