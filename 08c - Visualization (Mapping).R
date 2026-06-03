@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 01 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 01 Jun 2026
+# LAST MODIFIED: 03 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -68,12 +68,12 @@ stand_rast <- function (.layer, .var, .season = "off") {
 
 # prepare raster (availabilities and standardized)
 prep_rast <- function (.site,
-                       .radius = 100,
+                       .radius = 150,          # ~ mean 99% HR radius
                        .season = "off",
                        .year = "pre") {
   
   # which vars?
-  const.vars <- c("dOpen", "dDM", "ed", "twi", "north", "east")
+  const.vars <- c("dOpen", "dDM", "ed", "twi", "vrm")
   
   if (.season == "off" & .year == "pre") { which.vars <- c("vo.pre", "ch.pre", "cc.pre", const.vars) }
   if (.season == "off" & .year == "post") { which.vars <- c("vo.post", "ch.post", "cc.post", const.vars) }
@@ -138,8 +138,8 @@ prep_rast <- function (.site,
     stand_rast(rast.crop$ed, "ed", .season),
     stand_rast(rast.crop$twi, "twi", .season),
     stand_rast(rast.crop$twi^2, "twi2", .season),
-    stand_rast(rast.crop$north, "north", .season),
-    stand_rast(rast.crop$east, "east", .season),
+    stand_rast(rast.crop$vrm, "vrm", .season),
+    stand_rast(rast.crop$vrm^2, "vrm2", .season),
     
     # availabilities
     rast.stand.a1,
@@ -152,7 +152,7 @@ prep_rast <- function (.site,
   )
   
   # change names for squared terms
-  names(rast.stand)[c(3, 5, 10)] <- c("ch2", "cc2", "twi2")
+  names(rast.stand)[c(3, 5, 10, 12)] <- c("ch2", "cc2", "twi2", "vrm2")
   
   # return
   return(rast.stand)
@@ -184,10 +184,34 @@ pred_hsf <- function (.results,
   RET <- ifelse(.trt == "retention", 1, 0)
   PIL <- ifelse(.trt == "piling", 1, 0)
   
+  # add "zero" parameters if necessary
+  # if not, add a "zero" column
+  all.params.off <- off.M6[[1]]$param
+  #all.params.off <- on.M6[[1]]$param
+  
+  # which one?
+  all.params <- if (.season == "off") { all.params.off } else { all.params.on }
+  
   # calculate RSS
-  # for convenience, we're going to calculate the whole model structure here
-  # this will NOT accommodate the TRT-only interaction
   calc_rss <- function (.est) {
+    
+    # add zeroes if necessary
+    # helper function
+    add_zeroes <- function (.est, all.params) {
+      
+      # determine which covariates are not present
+      which.not <- all.params[which(all.params %notin% .est$param)]
+      
+      # bind in zero columns
+      .est.new <- rbind(.est,
+                        data.frame(param = which.not,
+                                   est = 0))
+    
+      return(.est.new)
+      
+    } # f()
+    
+    .est <- add_zeroes(.est, all.params)
     
     # correct season
     if (.season == "off") {
@@ -205,8 +229,8 @@ pred_hsf <- function (.results,
         .est$est[.est$param == "ed"] * .rast$ed +
         .est$est[.est$param == "twi"] * .rast$twi +
         .est$est[.est$param == "twi2"] * .rast$twi2 +
-        .est$est[.est$param == "north"] * .rast$north +
-        .est$est[.est$param == "east"] * .rast$east +
+        .est$est[.est$param == "vrm"] * .rast$vrm +
+        .est$est[.est$param == "vrm2"] * .rast$vrm2 +
         
         # stand-level functional responses (base)
         .est$est[.est$param == "vo:a.vo"] * .rast$vo * .rast$a.vo +
@@ -219,6 +243,26 @@ pred_hsf <- function (.results,
         .est$est[.est$param == "dOpen:a.dOpen"] * .rast$dOpen * .rast$a.dOpen +
         .est$est[.est$param == "dDM:a.dDM"] * .rast$dDM * .rast$a.dDM +
         .est$est[.est$param == "ed:a.ed"] * .rast$ed * .rast$a.ed +
+        
+        # stand level TRT
+        .est$est[.est$param == "vo:year.trt:ret"] * .rast$vo * RET +
+        .est$est[.est$param == "vo:year.trt:pil"] * .rast$vo * PIL +
+        .est$est[.est$param == "ch:year.trt:ret"] * .rast$ch * RET +
+        .est$est[.est$param == "ch:year.trt:pil"] * .rast$ch * PIL +
+        .est$est[.est$param == "ch2:year.trt:ret"] * .rast$ch2 * RET +
+        .est$est[.est$param == "ch2:year.trt:pil"] * .rast$ch2 * PIL +
+        .est$est[.est$param == "cc:year.trt:ret"] * .rast$cc * RET +
+        .est$est[.est$param == "cc:year.trt:pil"] * .rast$cc * PIL +
+        .est$est[.est$param == "cc2:year.trt:ret"] * .rast$cc2 * RET +
+        .est$est[.est$param == "cc2:year.trt:pil"] * .rast$cc2 * PIL +
+        
+        # landscape-level TRT
+        .est$est[.est$param == "dOpen:year.trt:ret"] * .rast$dOpen * RET +
+        .est$est[.est$param == "dOpen:year.trt:pil"] * .rast$dOpen * PIL +
+        .est$est[.est$param == "dDM:year.trt:ret"] * .rast$dDM * RET +
+        .est$est[.est$param == "dDM:year.trt:pil"] * .rast$dDM * PIL +
+        .est$est[.est$param == "ed:year.trt:ret"] * .rast$ed * RET +
+        .est$est[.est$param == "ed:year.trt:pil"] * .rast$ed * PIL +
         
         # stand-level FR x TRT
         .est$est[.est$param == "vo:a.vo:year.trt:ret"] * .rast$vo * .rast$a.vo * RET +
@@ -244,8 +288,8 @@ pred_hsf <- function (.results,
       
       log.rss <-
       
-      # main effects
-      .est$est[.est$param == "stem"] * .rast$stem +
+        # main effects
+        .est$est[.est$param == "stem"] * .rast$stem +
         .est$est[.est$param == "ch"] * .rast$ch +
         .est$est[.est$param == "ch2"] * .rast$ch2 +
         .est$est[.est$param == "cc"] * .rast$cc +
@@ -255,8 +299,8 @@ pred_hsf <- function (.results,
         .est$est[.est$param == "ed"] * .rast$ed +
         .est$est[.est$param == "twi"] * .rast$twi +
         .est$est[.est$param == "twi2"] * .rast$twi2 +
-        .est$est[.est$param == "north"] * .rast$north +
-        .est$est[.est$param == "east"] * .rast$east +
+        .est$est[.est$param == "vrm"] * .rast$vrm +
+        .est$est[.est$param == "vrm2"] * .rast$vrm2 +
         
         # stand-level functional responses (base)
         .est$est[.est$param == "stem:a.stem"] * .rast$stem * .rast$a.stem +
@@ -269,6 +313,26 @@ pred_hsf <- function (.results,
         .est$est[.est$param == "dOpen:a.dOpen"] * .rast$dOpen * .rast$a.dOpen +
         .est$est[.est$param == "dDM:a.dDM"] * .rast$dDM * .rast$a.dDM +
         .est$est[.est$param == "ed:a.ed"] * .rast$ed * .rast$a.ed +
+        
+        # stand level TRT
+        .est$est[.est$param == "stem:year.trt:ret"] * .rast$stem * RET +
+        .est$est[.est$param == "stem:year.trt:pil"] * .rast$stem * PIL +
+        .est$est[.est$param == "ch:year.trt:ret"] * .rast$ch * RET +
+        .est$est[.est$param == "ch:year.trt:pil"] * .rast$ch * PIL +
+        .est$est[.est$param == "ch2:year.trt:ret"] * .rast$ch2 * RET +
+        .est$est[.est$param == "ch2:year.trt:pil"] * .rast$ch2 * PIL +
+        .est$est[.est$param == "cc:year.trt:ret"] * .rast$cc * RET +
+        .est$est[.est$param == "cc:year.trt:pil"] * .rast$cc * PIL +
+        .est$est[.est$param == "cc2:year.trt:ret"] * .rast$cc2 * RET +
+        .est$est[.est$param == "cc2:year.trt:pil"] * .rast$cc2 * PIL +
+        
+        # landscape-level TRT
+        .est$est[.est$param == "dOpen:year.trt:ret"] * .rast$dOpen * RET +
+        .est$est[.est$param == "dOpen:year.trt:pil"] * .rast$dOpen * PIL +
+        .est$est[.est$param == "dDM:year.trt:ret"] * .rast$dDM * RET +
+        .est$est[.est$param == "dDM:year.trt:pil"] * .rast$dDM * PIL +
+        .est$est[.est$param == "ed:year.trt:ret"] * .rast$ed * RET +
+        .est$est[.est$param == "ed:year.trt:pil"] * .rast$ed * PIL +
         
         # stand-level FR x TRT
         .est$est[.est$param == "stem:a.stem:year.trt:ret"] * .rast$stem * .rast$a.stem * RET +
@@ -359,22 +423,24 @@ map_hsf <- function (.rast,
 # ______________________________________________________________________________
 
 # before vs after
-test.site <- "1A"
+test.site <- "1B"
 
-rast.pre <- prep_rast(.site = test.site, .season = "on", .year = "pre")
-rast.post <- prep_rast(.site = test.site, .season = "on", .year = "post")
+rast.pre <- prep_rast(.site = test.site, .season = "off", .year = "pre")
+rast.post <- prep_rast(.site = test.site, .season = "off", .year = "post")
 
-map_hsf(pred_hsf(.results = on.M6[[1]],
+map_hsf(pred_hsf(.results = off.M4[[1]],
                  .rast = rast.pre,
-                 .season = "on",
+                 .season = "off",
                  .trt = "unthinned"),
-        .site = test.site)
+        .site = test.site,
+        .log = F)
 
-map_hsf(pred_hsf(.results = on.M6[[1]],
+map_hsf(pred_hsf(.results = off.M4[[1]],
                  .rast = rast.post,
-                 .season = "on",
-                 .trt = "retention") |> clamp(upper = 4),
-        .site = test.site)
+                 .season = "off",
+                 .trt = "retention"),
+        .site = test.site,
+        .log = T)
 
 # controls
 test.site <- "4C"

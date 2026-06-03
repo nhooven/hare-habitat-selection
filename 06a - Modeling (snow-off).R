@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 02 Jun 2026
+# LAST MODIFIED: 03 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -403,6 +403,11 @@ M6.form <- case ~
 # ______________________________________________________________________________
 # 4. Fit models ----
 
+# fixed effect priors (Eisaguirre et al. 2025)
+fixed.list <- list(mean = 0,
+                   prec = 1)
+
+# model criteria
 compute.list <- list(cpo = T,      # CPO/PIT (similar to PPPvals)
                      dic = T)      # more appropriate than WAIC
 
@@ -412,43 +417,49 @@ M1.fit <- inla(M1.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 M2.fit <- inla(M2.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 M3.fit <- inla(M3.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 M4.fit <- inla(M4.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 M5.fit <- inla(M5.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 M6.fit <- inla(M6.form,
                weights = data.off$w,
                family = "binomial",
                data = data.off,
+               control.fixed = fixed.list,
                control.compute = compute.list)  
 
 # ______________________________________________________________________________
 # 5. Model comparison ----
 
 # function
-inla_cpo_table <- function (x) {
+inla_comp_table <- function (x) {
   
   # x is a list of models
   comp.table <- data.frame()
@@ -466,6 +477,8 @@ inla_cpo_table <- function (x) {
                         i == 5 ~ "Stand FR x TRT",
                         i == 6 ~ "Overall FR x TRT"),
       k.fixed = nrow(model.focal$summary.fixed),
+      k.eff = model.focal$dic$p.eff,
+      DIC = model.focal$dic$dic,
       CPO = -sum(log(model.focal$cpo$cpo)),
       mLL = model.focal$mlik[2]
       
@@ -476,15 +489,13 @@ inla_cpo_table <- function (x) {
     
   }
   
-  # compute dDIC and arrange
+  # compute dDIC and dCPO and arrange
   comp.table <- comp.table |>
     
-    mutate(dCPO = max(CPO) - CPO) |>
+    mutate(dDIC = DIC - min(DIC),
+           dCPO = max(CPO) - CPO) |>
     
-    # arrange
-    arrange(dCPO) |>
-    
-    dplyr::select(Model, k.fixed, CPO, dCPO, mLL)
+    dplyr::select(Model, k.fixed, k.eff, DIC, dDIC, CPO, dCPO, mLL)
   
   return(comp.table)
   
@@ -492,20 +503,25 @@ inla_cpo_table <- function (x) {
 
 # ______________________________________________________________________________
 
-inla_cpo_table(list(M1.fit,
+inla_comp_table(list(M1.fit,
                      M2.fit,
                      M3.fit,
                      M4.fit,
                      M5.fit,
-                     M6.fit))
+                     M6.fit)) |>
+  
+  arrange(dDIC)
 
-# weird issues with effective parameters for M4 (DIC problem for IPP models?)
-# M4 performs the best here
+# regularizing priors helped the DIC issue
+# M6 is by far the best in terms of DIC/likelihood
+# not the best in terms of CPO though (M4)
 
+summary(M6.fit)
 summary(M4.fit)
 
 # ______________________________________________________________________________
 # 6. Save to file ----
 # ______________________________________________________________________________
 
+saveRDS(M6.fit, "model_tests/off_M6.rds")
 saveRDS(M4.fit, "model_tests/off_M4.rds")

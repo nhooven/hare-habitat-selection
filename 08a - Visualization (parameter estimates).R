@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 01 Jun 2026
+# LAST MODIFIED: 03 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -45,33 +45,44 @@ levels.base.on <- levels.on.M6[1:13]
 labels.base.off <- c("log(G[s])", 
                      "visual obstruction", "canopy height", "canopy height2",
                      "canopy cover", "canopy cover2",
-                     "log(dOpen)", "log(dDense Mature)", "edge density",
-                     "wetness", "wetness2", "northness", "eastness")
+                     "dOpen", "dDense Mature", "edge density",
+                     "wetness", "wetness2", "ruggedness", "ruggedness2")
 
 labels.base.on <- c("log(G[s])", 
                     "stem density", "canopy height", "canopy height2",
                     "canopy cover", "canopy cover2",
-                    "log(dOpen)", "log(dDense Mature)", "edge density",
-                    "wetness", "wetness2", "northness", "eastness")
+                    "dOpen", "dDense Mature", "edge density",
+                    "wetness", "wetness2", "ruggedness", "ruggedness2")
 
 labels.off.M6 <- c(labels.base.off,
                    "visual obstruction x A",
                    "canopy height x A", "canopy height2 x A",
                    "canopy cover x A", "canopy cover2 x A",
-                   "log(dOpen) x A", "log(dDense Mature) x A", "edge density x A",
+                   "dOpen x A", "dDense Mature x A", "edge density x A",
+                   "visual obstruction x RET", "visual obstruction x PIL",
+                   "canopy height x RET", "canopy height x PIL", 
+                   "canopy height2 x RET", "canopy height2 x PIL",
+                   "canopy cover x RET", "canopy cover x PIL", 
+                   "canopy cover2 x RET", "canopy cover2 x PIL",
+                   "dOpen x RET", "dOpen x PIL",
+                   "dDense Mature x RET", "dDense Mature x PIL",
+                   "edge density x RET", "edge density x PIL",
                    "visual obstruction x A x RET", "visual obstruction x A x PIL",
                    "canopy height x A x RET", "canopy height x A x PIL", 
                    "canopy height2 x A x RET", "canopy height2 x A x PIL",
                    "canopy cover x A x RET", "canopy cover x A x PIL", 
                    "canopy cover2 x A x RET", "canopy cover2 x A x PIL",
-                   "log(dOpen) x A x RET", "log(dOpen) x A x PIL", 
-                   "log(dDense Mature) x A x RET", "log(dDense Mature) x A x PIL", 
+                   "dOpen x A x RET", "dOpen x A x PIL", 
+                   "dDense Mature x A x RET", "dDense Mature x A x PIL", 
                    "edge density x A x RET", "edge density x A x PIL")
 
 labels.off.M4 <- c(labels.base.off,
-                   "log(dOpen) x A", "log(dDense Mature) x A", "edge density x A",
-                   "log(dOpen) x A x RET", "log(dOpen) x A x PIL", 
-                   "log(dDense Mature) x A x RET", "log(dDense Mature) x A x PIL", 
+                   "dOpen x A", "dDense Mature x A", "edge density x A",
+                   "dOpen x RET", "dOpen x PIL",
+                   "dDense Mature x RET", "dDense Mature x PIL",
+                   "edge density x RET", "edge density x PIL",
+                   "dOpen x A x RET", "dOpen x A x PIL", 
+                   "dDense Mature x A x RET", "dDense Mature x A x PIL", 
                    "edge density x A x RET", "edge density x A x PIL")
 
 labels.on.M6 <- c(labels.base.on,

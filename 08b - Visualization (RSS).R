@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 01 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 01 Jun 2026
+# LAST MODIFIED: 03 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -114,11 +114,11 @@ predict_rss <- function (.results,
   
   # for flexibility, check if a variable is in .pred.df
   # if not, add a "zero" column
-  all.covars.off <- c("vo", "ch", "ch2", "cc", "cc2", "dOpen", "dDM", "ed", "twi", "twi2", "north", "east",
+  all.covars.off <- c("vo", "ch", "ch2", "cc", "cc2", "dOpen", "dDM", "ed", "twi", "twi2", "vrm", "vrm2",
                       "a.vo", "a.ch", "a.cc", "a.dOpen", "a.dDM", "a.ed",
                       "year.trt", "ret", "pil")
   
-  all.covars.on <- c("stem", "ch", "ch2", "cc", "cc2", "dOpen", "dDM", "ed", "twi", "twi2", "north", "east",
+  all.covars.on <- c("stem", "ch", "ch2", "cc", "cc2", "dOpen", "dDM", "ed", "twi", "twi2", "vrm", "vrm2",
                      "a.stem", "a.ch", "a.cc", "a.dOpen", "a.dDM", "a.ed",
                      "year.trt", "ret", "pil")
   
@@ -167,8 +167,8 @@ predict_rss <- function (.results,
         .est$est[.est$param == "ed"] * pred.df.new$ed +
         .est$est[.est$param == "twi"] * pred.df.new$twi +
         .est$est[.est$param == "twi2"] * pred.df.new$twi2 +
-        .est$est[.est$param == "north"] * pred.df.new$north +
-        .est$est[.est$param == "east"] * pred.df.new$east +
+        .est$est[.est$param == "vrm"] * pred.df.new$vrm +
+        .est$est[.est$param == "vrm2"] * pred.df.new$vrm2 +
         
         # stand-level functional responses (base)
         .est$est[.est$param == "vo:a.vo"] * pred.df.new$vo * pred.df.new$a.vo +
@@ -181,6 +181,26 @@ predict_rss <- function (.results,
         .est$est[.est$param == "dOpen:a.dOpen"] * pred.df.new$dOpen * pred.df.new$a.dOpen +
         .est$est[.est$param == "dDM:a.dDM"] * pred.df.new$dDM * pred.df.new$a.dDM +
         .est$est[.est$param == "ed:a.ed"] * pred.df.new$ed * pred.df.new$a.ed +
+        
+        # stand level TRT
+        .est$est[.est$param == "vo:year.trt:ret"] * pred.df.new$vo * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "vo:year.trt:pil"] * pred.df.new$vo * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ch:year.trt:ret"] * pred.df.new$ch * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ch:year.trt:pil"] * pred.df.new$ch * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ch2:year.trt:ret"] * pred.df.new$ch2 * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ch2:year.trt:pil"] * pred.df.new$ch2 * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "cc:year.trt:ret"] * pred.df.new$cc * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "cc:year.trt:pil"] * pred.df.new$cc * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "cc2:year.trt:ret"] * pred.df.new$cc2 * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "cc2:year.trt:pil"] * pred.df.new$cc2 * pred.df.new$year.trt * pred.df.new$pil +
+        
+        # landscape-level TRT
+        .est$est[.est$param == "dOpen:year.trt:ret"] * pred.df.new$dOpen * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "dOpen:year.trt:pil"] * pred.df.new$dOpen * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "dDM:year.trt:ret"] * pred.df.new$dDM * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "dDM:year.trt:pil"] * pred.df.new$dDM * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ed:year.trt:ret"] * pred.df.new$ed * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ed:year.trt:pil"] * pred.df.new$ed * pred.df.new$year.trt * pred.df.new$pil +
         
         # stand-level FR x TRT
         .est$est[.est$param == "vo:a.vo:year.trt:ret"] * pred.df.new$vo * pred.df.new$a.vo * pred.df.new$year.trt * pred.df.new$ret +
@@ -215,8 +235,8 @@ predict_rss <- function (.results,
         .est$est[.est$param == "ed"] * pred.df.new$ed +
         .est$est[.est$param == "twi"] * pred.df.new$twi +
         .est$est[.est$param == "twi2"] * pred.df.new$twi2 +
-        .est$est[.est$param == "north"] * pred.df.new$north +
-        .est$est[.est$param == "east"] * pred.df.new$east +
+        .est$est[.est$param == "vrm"] * pred.df.new$vrm +
+        .est$est[.est$param == "vrm2"] * pred.df.new$vrm2 +
         
         # stand-level functional responses (base)
         .est$est[.est$param == "stem:a.stem"] * pred.df.new$stem * pred.df.new$a.stem +
@@ -229,6 +249,26 @@ predict_rss <- function (.results,
         .est$est[.est$param == "dOpen:a.dOpen"] * pred.df.new$dOpen * pred.df.new$a.dOpen +
         .est$est[.est$param == "dDM:a.dDM"] * pred.df.new$dDM * pred.df.new$a.dDM +
         .est$est[.est$param == "ed:a.ed"] * pred.df.new$ed * pred.df.new$a.ed +
+        
+        # stand level TRT
+        .est$est[.est$param == "stem:year.trt:ret"] * pred.df.new$stem * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "stem:year.trt:pil"] * pred.df.new$stem * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ch:year.trt:ret"] * pred.df.new$ch * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ch:year.trt:pil"] * pred.df.new$ch * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ch2:year.trt:ret"] * pred.df.new$ch2 * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ch2:year.trt:pil"] * pred.df.new$ch2 * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "cc:year.trt:ret"] * pred.df.new$cc * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "cc:year.trt:pil"] * pred.df.new$cc * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "cc2:year.trt:ret"] * pred.df.new$cc2 * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "cc2:year.trt:pil"] * pred.df.new$cc2 * pred.df.new$year.trt * pred.df.new$pil +
+        
+        # landscape-level TRT
+        .est$est[.est$param == "dOpen:year.trt:ret"] * pred.df.new$dOpen * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "dOpen:year.trt:pil"] * pred.df.new$dOpen * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "dDM:year.trt:ret"] * pred.df.new$dDM * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "dDM:year.trt:pil"] * pred.df.new$dDM * pred.df.new$year.trt * pred.df.new$pil +
+        .est$est[.est$param == "ed:year.trt:ret"] * pred.df.new$ed * pred.df.new$year.trt * pred.df.new$ret +
+        .est$est[.est$param == "ed:year.trt:pil"] * pred.df.new$ed * pred.df.new$year.trt * pred.df.new$pil +
         
         # stand-level FR x TRT
         .est$est[.est$param == "stem:a.stem:year.trt:ret"] * pred.df.new$stem * pred.df.new$a.stem * pred.df.new$year.trt * pred.df.new$ret +
@@ -297,7 +337,7 @@ plot_rss <- function (.pred,
   }
   
   # informative x-axis title
-  x.titles <- data.frame(var = c("vo", "stem", "ch", "cc", "dOpen", "dDM", "ed", "twi", "north", "eastness"),
+  x.titles <- data.frame(var = c("vo", "stem", "ch", "cc", "dOpen", "dDM", "ed", "twi", "vrm"),
                          title = c("Visual obstruction (%)",
                                    "Conifer stem density (stems/ha)",
                                    "Canopy height (m)",
@@ -306,8 +346,7 @@ plot_rss <- function (.pred,
                                    "Distance to dense mature (m)",
                                    "Edge density (m/ha)",
                                    "Wetness",
-                                   "Northness",
-                                   "Eastness"))
+                                   "Ruggedness"))
   
   # plot
   ggplot(data = .pred) +
@@ -360,7 +399,7 @@ off.M6[[1]] |>
 # distance
 off.M6[[1]] |> 
   predict_rss(data.frame(dDM = range_s(off.summ, "dDM"))) |> 
-  unlog(off.summ, "dDM") |> 
+  unstand(off.summ, "dDM") |> 
   plot_rss("dDM")
 
 # functional responses
@@ -408,7 +447,7 @@ plot_rss_int <- function (.pred,
   .pred$group <- factor(.pred$group)
   
   # informative x-axis title
-  x.titles <- data.frame(var = c("vo", "stem", "ch", "cc", "dOpen", "dDM", "ed", "twi", "north", "eastness"),
+  x.titles <- data.frame(var = c("vo", "stem", "ch", "cc", "dOpen", "dDM", "ed", "twi", "vrm"),
                          title = c("Visual obstruction (%)",
                                    "Conifer stem density (stems/ha)",
                                    "Canopy height (m)",
@@ -417,8 +456,7 @@ plot_rss_int <- function (.pred,
                                    "Distance to dense mature (m)",
                                    "Edge density (m/ha)",
                                    "Wetness",
-                                   "Northness",
-                                   "Eastness"))
+                                   "Ruggedness"))
   
   # plot
   ggplot(data = .pred) +
@@ -449,18 +487,21 @@ plot_rss_int <- function (.pred,
                 "log(Relative selection strength)", 
                 "Relative selection strength")) +
     
-    xlab(x.titles$title[x.titles$var == .x])
+    xlab(x.titles$title[x.titles$var == .x]) +
+    
+    theme(panel.grid = element_blank(),
+          axis.text = element_text(color = "black"),
+          strip.background = element_rect(color = NA)) +
+    
+    scale_color_viridis_d() +
+    scale_fill_viridis_d()
   
-}
-
-off.M6[[1]] |> 
-  predict_rss(fr.pred.df) |> 
-  unstand(off.summ, "cc") |> 
-  plot_rss_int("cc", .group = "a.cc")
+} # f()
 
 # landscape
-fr.pred.df <- data.frame(vo = rep(range_s(off.summ, "vo"), 3),
-                         a.vo = c(rep(-3, 100), rep(0, 100), rep(3, 100),
+fr.pred.df <- data.frame(ch = rep(range_s(off.summ, "ch"), 3),
+                         ch2 = correct_sq(rep(range_s(off.summ, "ch"), 3), off.summ, "ch"),
+                         a.ch = c(rep(-3, 100), rep(0, 100), rep(3, 100),
                                      rep(-3, 100), rep(0, 100), rep(3, 100),
                                      rep(-3, 100), rep(0, 100), rep(3, 100)),
                          year.trt = 1,
@@ -472,5 +513,26 @@ fr.pred.df <- data.frame(vo = rep(range_s(off.summ, "vo"), 3),
 
 off.M6[[1]] |> 
   predict_rss(fr.pred.df) |> 
+  unstand(off.summ, "ch") |> 
+  plot_rss_int("ch", .group = "a.ch")
+
+off.M6[[1]] |> 
+  predict_rss(fr.pred.df) |> 
   unstand(off.summ, "vo") |> 
   plot_rss_int("vo", "a.vo")
+
+fr.pred.df.1 <- data.frame(ed = rep(range_s(off.summ, "ed"), 3),
+                         a.ed = c(rep(-3, 100), rep(0, 100), rep(3, 100),
+                                  rep(-3, 100), rep(0, 100), rep(3, 100),
+                                  rep(-3, 100), rep(0, 100), rep(3, 100)),
+                         year.trt = 1,
+                         ret = c(rep(0, 300), rep(1, 300), rep(0, 300)),
+                         pil = c(rep(0, 300), rep(0, 300), rep(1, 300)),
+                         z = c(rep("low.unt", 100), rep("mid.unt", 100), rep("hi.unt", 100),
+                               rep("low.ret", 100), rep("mid.ret", 100), rep("hi.ret", 100),
+                               rep("low.pil", 100), rep("mid.pil", 100), rep("hi.pil", 100)))
+
+off.M6[[1]] |> 
+  predict_rss(fr.pred.df.1) |> 
+  unstand(off.summ, "ed") |> 
+  plot_rss_int("ed", "a.ed")
