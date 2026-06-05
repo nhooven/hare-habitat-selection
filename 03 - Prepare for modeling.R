@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 02 Jun 2026
+# LAST MODIFIED: 05 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -49,14 +49,6 @@ prep_1 <- function (x) {
         
       ),
       
-      # SHDI
-      #shdi = case_when(
-        
-      #  year == "PRE" ~ shdi.pre,
-      #  year %in% c("POST1", "POST2") ~ shdi.post
-        
-      #),
-      
       # VO
       vo = case_when(
         
@@ -75,28 +67,10 @@ prep_1 <- function (x) {
       
     ) |>
     
-    # indicators for year (just pre-post treatment for now)
-    # and each treatment
-    mutate(
-      
-      year.trt = case_when(
-        
-        year == "PRE" ~ 0,
-        year %in% c("POST1", "POST2") ~ 1
-        
-      ),
-      
-      ret = ifelse(c.trt == "RET", 1, 0),
-      pil = ifelse(c.trt == "PIL", 1, 0)
-      
-    ) |>
-    
     # drop variables
     dplyr::select(
       
-      -c(year,
-         trt,
-         c.trt,
+      -c(trt,
          season,
          ch.pre,
          ch.post,
@@ -129,19 +103,12 @@ prep_1 <- function (x) {
     # case weights
     mutate(w = ifelse(case == 0, 5000, 1)) |>
     
-    # cluster
-    mutate(cluster = substr(site, 1, 1)) |>
-    
     # keep correct variables
     dplyr::select(
       
       track_season_post,   # for calculating availability
-      cluster,
-      sex,
-      MRID,
-      year.trt,
-      ret,
-      pil,
+      year,
+      c.trt,
       case,
       w,
       
@@ -170,49 +137,14 @@ data.off.1 <- prep_1(data.off)
 data.on.1 <- prep_1(data.on)
 
 # ______________________________________________________________________________
-# 4. Mean availability ----
-# ______________________________________________________________________________
-
-calc_avail <- function (x) {
-  
-  x.1 <- x |>
-    
-    # keep identifier and each landscape covariate
-    dplyr::select(track_season_post,
-                  vo:ed) |>
-    
-    # pivot longer
-    pivot_longer(vo:ed) |>
-    
-    # group and summarize
-    group_by(track_season_post, name) |>
-    summarize(mean = mean(value)) |>
-    
-    # remove groups
-    ungroup() |>
-    
-    # pivot wider 
-    pivot_wider(names_from = name,
-                names_prefix = "a.",
-                values_from = mean)
-  
-  return(x.1)
-  
-}
-
-# use
-data.off.2 <- data.off.1 |> left_join(calc_avail(data.off.1))
-data.on.2 <- data.on.1 |> left_join(calc_avail(data.on.1))
-
-# ______________________________________________________________________________
 # 5. Extract attributes to bind in later ----
 # ______________________________________________________________________________
 
-data.off.attr <- data.off.2 |> dplyr::select(track_season_post:akde)
-data.on.attr <- data.on.2 |> dplyr::select(track_season_post:akde)
+data.off.attr <- data.off.1 |> dplyr::select(track_season_post:akde)
+data.on.attr <- data.on.1 |> dplyr::select(track_season_post:akde)
 
-data.off.cov <- data.off.2 |> dplyr::select(vo:a.vrm)
-data.on.cov <- data.on.2 |> dplyr::select(vo:a.vrm)
+data.off.cov <- data.off.1 |> dplyr::select(vo:ed)
+data.on.cov <- data.on.1 |> dplyr::select(vo:ed)
 
 # ______________________________________________________________________________
 # 6. Transformations ----
@@ -226,28 +158,11 @@ transform_covs <- function (x) {
     # squared
     mutate(
       
-      ch2 = ch^2,
       cc2 = cc^2,
       twi2 = twi^2,
       vrm2 = vrm^2
-        
-      ) 
-  
-  #|>
-    
-    # availability transformations
-    # these will all be log for now
-    #mutate(
       
-      #across(
-        
-        #a.cc:a.vrm,
-        #log,
-        #.names = "l.{.col}"
-        
-      #)
-      
-    #)
+    ) 
   
   return(x.1)
   
@@ -255,8 +170,8 @@ transform_covs <- function (x) {
 
 # ______________________________________________________________________________
 
-data.off.3 <- transform_covs(data.off.cov)
-data.on.3 <- transform_covs(data.on.cov)
+data.off.2 <- transform_covs(data.off.cov)
+data.on.2 <- transform_covs(data.on.cov)
 
 # ______________________________________________________________________________
 # 6. Save means, SDs, and ranges ----
@@ -286,8 +201,8 @@ mean_sds <- function (x) {
 # ______________________________________________________________________________
 
 # use
-mean.sd.off <- mean_sds(data.off.3)
-mean.sd.on <- mean_sds(data.on.3)
+mean.sd.off <- mean_sds(data.off.2)
+mean.sd.on <- mean_sds(data.on.2)
 
 # ______________________________________________________________________________
 # 7. Standardize ----
@@ -319,22 +234,40 @@ standardize_across <- function (x) {
 
 # ______________________________________________________________________________
 
-data.off.4 <- standardize_across(data.off.3)
-data.on.4 <- standardize_across(data.on.3)
+data.off.3 <- standardize_across(data.off.2)
+data.on.3 <- standardize_across(data.on.2)
 
 # ______________________________________________________________________________
 # 8. Bind back in ----
 # ______________________________________________________________________________
 
-data.off.5 <- cbind(data.off.attr, data.off.4)
-data.on.5 <- cbind(data.on.attr, data.on.4)
+data.off.4 <- cbind(data.off.attr, data.off.3)
+data.on.4 <- cbind(data.on.attr, data.on.3)
 
 # ______________________________________________________________________________
-# 9. Save to files ----
+# 9. Examine n used locations per TSP ----
 # ______________________________________________________________________________
 
-saveRDS(data.off.5, "data_for_model/off_data.rds")
-saveRDS(data.on.5, "data_for_model/on_data.rds")
+n.used.off <- data.off.4 |> group_by(track_season_post) |>
+  
+  filter(case == 1) |>
+  
+  summarize(n.used = n())
+
+n.used.on <- data.on.4 |> group_by(track_season_post) |>
+  
+  filter(case == 1) |>
+  
+  summarize(n.used = n())
+
+# some of these would never work with individual-level models
+
+# ______________________________________________________________________________
+# 10. Save to files ----
+# ______________________________________________________________________________
+
+saveRDS(data.off.4, "data_for_model/off_data.rds")
+saveRDS(data.on.4, "data_for_model/on_data.rds")
 
 saveRDS(mean.sd.off, "data_for_model/mean_sd_off.rds")
 saveRDS(mean.sd.on, "data_for_model/mean_sd_on.rds")

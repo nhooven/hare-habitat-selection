@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 02 Jun 2026
+# LAST MODIFIED: 04 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -99,9 +99,9 @@ add_corrected_trt <- function (.x) {
     # corrected trt
     mutate(c.trt = case_when(
       
-      closest.mode %in% c(1, 5, 8, 10) ~ "RET",
-      closest.mode %in% c(3, 4, 7, 11) ~ "PIL",
-      closest.mode %in% c(2, 6, 9, 12) ~ "CTRL"
+      closest.mode %in% c(1, 5, 8, 10) ~ "RET",  # 1A, 2B, 3B, 4A
+      closest.mode %in% c(2, 4, 7, 11) ~ "PIL",  # 1B, 2A, 3A, 3B
+      closest.mode %in% c(3, 6, 9, 12) ~ "CTRL"  # 1C, 2C, 3C, 4C
       
      )
     
@@ -118,6 +118,15 @@ add_corrected_trt <- function (.x) {
 }
 
 pts.corrected <- add_corrected_trt(pts)
+
+# how many changed?
+test <- pts.corrected |> 
+  
+  group_by(track_season_post) |>
+  
+  slice(1)
+
+sum(test$trt != test$c.trt)  # only changed 3!
 
 # add to sampled dfs
 pts.off.1 <- cbind(pts.off, c.trt = pts.corrected$c.trt[1:nrow(pts.off)]) 

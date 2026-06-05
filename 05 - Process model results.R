@@ -1,10 +1,10 @@
 # PROJECT: Habitat selection
-# SCRIPT: 07 - Process model results
+# SCRIPT: 05 - Process model results
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 03 Jun 2026
+# LAST MODIFIED: 05 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -18,12 +18,8 @@ library(INLA)
 # 2. Load models ----
 # ______________________________________________________________________________
 
-# off
-off.M6 <- readRDS("model_tests/off_M6.rds")
-off.M4 <- readRDS("model_tests/off_M4.rds")
-
-on.M6 <- readRDS("model_tests/on_M6.rds")
-on.M5 <- readRDS("model_tests/on_M5.rds")
+M.off <- readRDS("model_tests/off.rds")
+M.on <- readRDS("model_tests/on.rds")
 
 # ______________________________________________________________________________
 # 3. Population-level effects ----
@@ -64,11 +60,8 @@ extract_pop_effects <- function (.model,
 
 # ______________________________________________________________________________
 
-off.M6.pop.eff <- extract_pop_effects(off.M6, 0.9)
-off.M4.pop.eff <- extract_pop_effects(off.M4, 0.9)
-
-on.M6.pop.eff <- extract_pop_effects(on.M6, 0.9)
-on.M5.pop.eff <- extract_pop_effects(on.M5, 0.9)
+M.off.pop.eff <- extract_pop_effects(M.off, 0.9)
+M.on.pop.eff <- extract_pop_effects(M.on, 0.9)
 
 # ______________________________________________________________________________
 # 4. Random effect variances ----
@@ -93,8 +86,8 @@ extract_RS_variance <- function (.model) {
     unname()
   
   # add names
-  # ignore intercept and g.s
-  hyp.var.df <- data.frame(param = names(.model$marginals.fixed)[3:(length(hyp.var) + 2)],
+  # ignore intercept
+  hyp.var.df <- data.frame(param = names(.model$marginals.fixed)[2:(length(hyp.var) + 1)],
                            variance = hyp.var,
                            sd = sqrt(hyp.var))
   
@@ -104,11 +97,8 @@ extract_RS_variance <- function (.model) {
 
 # ______________________________________________________________________________
 
-off.M6.rs.var <- extract_RS_variance(off.M6)
-off.M4.rs.var <- extract_RS_variance(off.M4)
-
-on.M6.rs.var <- extract_RS_variance(on.M6)
-on.M5.rs.var <- extract_RS_variance(on.M5)
+M.off.rs.var <- extract_RS_variance(M.off)
+M.on.rs.var <- extract_RS_variance(M.on)
 
 # ______________________________________________________________________________
 # 5. Individual-level slopes ----
@@ -116,8 +106,8 @@ on.M5.rs.var <- extract_RS_variance(on.M5)
 # function
 extract_RS <- function (.model) {
   
-  # random slope adjustment marginals (remove intercept)
-  marg.rs <- .model$marginals.random[-1]
+  # random slope adjustment marginals (remove intercept and g.s)
+  marg.rs <- .model$marginals.random[-c(1, 2)]
   
   # param names (remove intercept and g.s)
   param.names <- rownames(.model$summary.fixed)[3:(length(marg.rs) + 2)]
@@ -142,32 +132,47 @@ extract_RS <- function (.model) {
                                      inla.emarginal, 
                                      fun = mean))[, -c(1, 2)]
   
-  cond.slopes <- pop.means + all.deviations |>
-    
-    as.data.frame()
+  cond.slopes <- sweep(all.deviations, 2, pop.means, FUN = "+") |> as.data.frame()
+  
+  # extract SDs
+  # importantly, these are the SDs for the DEVIATIONS, not the conditional estimates
+  # however we can still use them for IVW since they're all on the same scale
+  cond.slopes.sd <- cbind(.model$summary.random$TSPID2$sd,
+                          .model$summary.random$TSPID3$sd,
+                          .model$summary.random$TSPID4$sd,
+                          .model$summary.random$TSPID5$sd,
+                          .model$summary.random$TSPID6$sd,
+                          .model$summary.random$TSPID7$sd,
+                          .model$summary.random$TSPID8$sd,
+                          .model$summary.random$TSPID9$sd,
+                          .model$summary.random$TSPID10$sd,
+                          .model$summary.random$TSPID11$sd,
+                          .model$summary.random$TSPID12$sd) |> as.data.frame()
   
   # parameter names
   colnames(cond.slopes) <- param.names
+  colnames(cond.slopes.sd) <- param.names
   
   # add MRIDs (double check that these are in the right order!!)
-  cond.slopes <- cbind(MRID = .model$summary.random$MRID$ID,
+  cond.slopes <- cbind(TSPID = .model$summary.random$TSPID$ID,
                        cond.slopes)
   
-  # remove rownmaes for cleanness
+  cond.slopes.sd <- cbind(TSPID = .model$summary.random$TSPID$ID,
+                          cond.slopes.sd)
+  
+  # remove rownames for cleanness
   rownames(cond.slopes) <- NULL
+  rownames(cond.slopes.sd) <- NULL
   
   # return
-  return(cond.slopes)
+  return(list(cond.slopes, cond.slopes.sd))
   
 }
 
 # ______________________________________________________________________________
 
-off.M6.rs <- extract_RS(off.M6)
-off.M4.rs <- extract_RS(off.M4)
-
-on.M6.rs <- extract_RS(on.M6)
-on.M5.rs <- extract_RS(on.M5)
+M.off.rs <- extract_RS(M.off)
+M.on.rs <- extract_RS(M.on)
 
 # ______________________________________________________________________________
 # 6. Write to file ----
@@ -175,28 +180,19 @@ on.M5.rs <- extract_RS(on.M5)
 # 6a. Lists ----
 # ______________________________________________________________________________
 
-off.M6.list <- list(off.M6.pop.eff,
-                    off.M6.rs.var,
-                    off.M6.rs)
+M.off.list <- list(M.off.pop.eff,
+                   M.off.rs.var,
+                   M.off.rs[[1]],
+                   M.off.rs[[2]])
 
-off.M4.list <- list(off.M4.pop.eff,
-                    off.M4.rs.var,
-                    off.M4.rs)
-
-on.M6.list <- list(on.M6.pop.eff,
-                   on.M6.rs.var,
-                   on.M6.rs)
-
-on.M5.list <- list(on.M5.pop.eff,
-                   on.M5.rs.var,
-                   on.M5.rs)
+M.on.list <- list(M.on.pop.eff,
+                   M.on.rs.var,
+                   M.on.rs[[1]],
+                   M.on.rs[[2]])
 
 # ______________________________________________________________________________
 # 6b. Write ----
 # ______________________________________________________________________________
 
-saveRDS(off.M6.list, "model_results/off_M6.rds")
-saveRDS(off.M4.list, "model_results/off_M4.rds")
-
-saveRDS(on.M6.list, "model_results/on_M6.rds")
-saveRDS(on.M5.list, "model_results/on_M5.rds")
+saveRDS(M.off.list, "model_results/M_off.rds")
+saveRDS(M.on.list, "model_results/M_on.rds")
