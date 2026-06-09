@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 05 Jun 2026
+# LAST MODIFIED: 09 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -198,11 +198,52 @@ mean_sds <- function (x) {
   
 }
 
+mean_sds_trt <- function (x, y) {
+  
+  x.1 <- x |>
+    
+    bind_cols(y |> dplyr::select(year, c.trt)) |>
+    
+    mutate(TRT = case_when(
+      
+      year == "PRE" ~ "UNTHIN",
+      year %in% c("POST1", "POST2") & c.trt == "CTRL" ~ "UNTHIN",
+      year %in% c("POST1", "POST2") & c.trt == "RET" ~ "RET",
+      year %in% c("POST1", "POST2") & c.trt == "PIL" ~ "PIL"
+      
+    )
+    
+    ) |>
+    
+    dplyr::select(-c(year, c.trt)) |>
+    
+    pivot_longer(cols = vo:vrm2) |>
+    
+    group_by(name, TRT) |>
+    
+    summarize(
+      
+      mean = mean(value),
+      sd = sd(value),
+      min = min(value),
+      max = max(value)
+      
+    ) |>
+    
+    ungroup()
+  
+  return(x.1)
+  
+}
+
 # ______________________________________________________________________________
 
 # use
 mean.sd.off <- mean_sds(data.off.2)
 mean.sd.on <- mean_sds(data.on.2)
+
+mean.sd.off.trt <- mean_sds_trt(data.off.2, data.off.attr)
+mean.sd.on.trt <- mean_sds_trt(data.on.2, data.on.attr)
 
 # ______________________________________________________________________________
 # 7. Standardize ----
@@ -271,3 +312,6 @@ saveRDS(data.on.4, "data_for_model/on_data.rds")
 
 saveRDS(mean.sd.off, "data_for_model/mean_sd_off.rds")
 saveRDS(mean.sd.on, "data_for_model/mean_sd_on.rds")
+
+saveRDS(mean.sd.off.trt, "data_for_model/mean_sd_off_trt.rds")
+saveRDS(mean.sd.on.trt, "data_for_model/mean_sd_on_trt.rds")
