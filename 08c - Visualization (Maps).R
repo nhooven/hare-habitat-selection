@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 08 Jun 2026
+# LAST MODIFIED: 09 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -27,15 +27,14 @@ M.on <- readRDS("model_results/M_on.rds")
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.dOpen <- readRDS("model_results/fr_models/off_dOpen.rds")
+off.dOM <- readRDS("model_results/fr_models/off_dOM.rds")
 off.dDM <- readRDS("model_results/fr_models/off_dDM.rds")
-off.ed <- readRDS("model_results/fr_models/off_ed.rds")
+off.shdi <- readRDS("model_results/fr_models/off_shdi.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
 on.ch <- readRDS("model_results/fr_models/on_ch.rds")
 on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-on.dOpen <- readRDS("model_results/fr_models/on_dOpen.rds")
 on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
 
 # means and SDs
@@ -81,16 +80,16 @@ prep_rast <- function (.site,
                        .year = "pre") {
   
   # which vars?
-  const.vars <- c("dOpen", "dDM", "ed", "twi", "vrm")
+  const.vars <- c("dOM", "dDM", "ed", "twi", "vrm")
   
-  if (.season == "off" & .year == "pre") { which.vars <- c("vo.pre", "ch.pre", "cc.pre", const.vars) }
-  if (.season == "off" & .year == "post") { which.vars <- c("vo.post", "ch.post", "cc.post", const.vars) }
-  if (.season == "on" & .year == "pre") { which.vars <- c("stem.pre", "ch.pre", "cc.pre", const.vars) }
-  if (.season == "on" & .year == "post") { which.vars <- c("stem.post", "ch.post", "cc.post", const.vars) }
+  if (.season == "off" & .year == "pre") { which.vars <- c("vo.pre", "ch.pre", "cc.pre", "shdi.pre", const.vars) }
+  if (.season == "off" & .year == "post") { which.vars <- c("vo.post", "ch.post", "cc.post", "shdi.post", const.vars) }
+  if (.season == "on" & .year == "pre") { which.vars <- c("stem.pre", "ch.pre", "cc.pre", "shdi.pre", const.vars) }
+  if (.season == "on" & .year == "post") { which.vars <- c("stem.post", "ch.post", "cc.post", "shdi.post", const.vars) }
   
   # variable names
-  if (.season == "off") { var.names <- c("vo", "ch", "cc", const.vars) }
-  if (.season == "on") { var.names <- c("stem", "ch", "cc", const.vars) }
+  if (.season == "off") { var.names <- c("vo", "ch", "cc", "shdi", const.vars) }
+  if (.season == "on") { var.names <- c("stem", "ch", "cc", "shdi", const.vars) }
   
   # subset site
   focal.site <- units |> filter(name == .site)
@@ -141,9 +140,10 @@ prep_rast <- function (.site,
     stand_rast(rast.crop$ch, "ch", .season),
     stand_rast(rast.crop$cc, "cc", .season),
     stand_rast(rast.crop$cc^2, "cc2", .season),
-    stand_rast(rast.crop$dOpen, "dOpen", .season),
+    stand_rast(rast.crop$dOM, "dOM", .season),
     stand_rast(rast.crop$dDM, "dDM", .season),
     stand_rast(rast.crop$ed, "ed", .season),
+    stand_rast(rast.crop$shdi, "shdi", .season),
     stand_rast(rast.crop$twi, "twi", .season),
     stand_rast(rast.crop$twi^2, "twi2", .season),
     stand_rast(rast.crop$vrm, "vrm", .season),
@@ -153,9 +153,10 @@ prep_rast <- function (.site,
     rast.stand.a1,
     rast.avail$a.ch,
     rast.avail$a.cc,
-    rast.avail$a.dOpen,
+    rast.avail$a.dOM,
     rast.avail$a.dDM,
-    rast.avail$a.ed
+    rast.avail$a.ed,
+    rast.avail$a.shdi
     
   )
   
@@ -224,21 +225,21 @@ pred_hsf <- function (.site,
     # FR predictions + SEs
     # make rasters for prediction
     rast.vo <- subset(site.rast, c("a.vo", "TRT"))
-    rast.dOpen <- subset(site.rast, c("a.dOpen", "TRT"))
+    rast.dOM <- subset(site.rast, c("a.dOM", "TRT"))
     rast.dDM <- subset(site.rast, c("a.dDM", "TRT"))
-    rast.ed <- subset(site.rast, c("a.ed", "TRT"))
+    rast.shdi <- subset(site.rast, c("a.shdi", "TRT"))
     
     # names
     names(rast.vo)[1] <- "avail"
-    names(rast.dOpen)[1] <- "avail"
+    names(rast.dOM)[1] <- "avail"
     names(rast.dDM)[1] <- "avail"
-    names(rast.ed)[1] <- "avail"
+    names(rast.shdi)[1] <- "avail"
     
     # FR predictions
     beta.vo <- predict(object = rast.vo, model = off.vo, fun = predict.gam, se.fit = T, na.omit = T)
-    beta.dOpen <- predict(object = rast.dOpen, model = off.dOpen, fun = predict.gam, se.fit = T)
+    beta.dOM <- predict(object = rast.dOM, model = off.dOM, fun = predict.gam, se.fit = T)
     beta.dDM <- predict(object = rast.dDM, model = off.dDM, fun = predict.gam, se.fit = T)
-    beta.ed <- predict(object = rast.ed, model = off.ed, fun = predict.gam, se.fit = T)
+    beta.shdi <- predict(object = rast.shdi, model = off.shdi, fun = predict.gam, se.fit = T)
     
     # Monte Carlo predictions
     n.samp <- 100
@@ -248,9 +249,9 @@ pred_hsf <- function (.site,
       
       # sample from availability-weighted, spatially-varying betas
       beta.vo.i <- sample.betas(beta.vo)
-      beta.dOpen.i <- sample.betas(beta.dOpen)
+      beta.dOM.i <- sample.betas(beta.dOM)
       beta.dDM.i <- sample.betas(beta.dDM)
-      beta.ed.i <- sample.betas(beta.ed)
+      beta.shdi.i <- sample.betas(beta.shdi)
       
       # sample other coefs (non-spatially varying)
       beta.ch.i <- rnorm(1, hsf$mean[hsf$param == "ch"], hsf$sd[hsf$param == "ch"])
@@ -260,6 +261,7 @@ pred_hsf <- function (.site,
       beta.twi2.i <- rnorm(1, hsf$mean[hsf$param == "twi2"], hsf$sd[hsf$param == "twi2"])
       beta.vrm.i <- rnorm(1, hsf$mean[hsf$param == "vrm"], hsf$sd[hsf$param == "vrm"])
       beta.vrm2.i <- rnorm(1, hsf$mean[hsf$param == "vrm2"], hsf$sd[hsf$param == "vrm2"])
+      beta.ed.i <- rnorm(1, hsf$mean[hsf$param == "ed"], hsf$sd[hsf$param == "ed"])
       
       # calculate log RSS prediction
       log.rss <- 
@@ -272,12 +274,13 @@ pred_hsf <- function (.site,
         beta.twi2.i * site.rast$twi2 +
         beta.vrm.i * site.rast$vrm +
         beta.vrm2.i * site.rast$vrm2 +
+        beta.ed.i * site.rast$ed +
         
         # functional responses
         beta.vo.i * site.rast$vo +
-        beta.dOpen.i * site.rast$dOpen +
+        beta.dOM.i * site.rast$dOM +
         beta.dDM.i * site.rast$dDM +
-        beta.ed.i * site.rast$ed
+        beta.shdi.i * site.rast$shdi
         
       # add
       add(all.log.rss) <- log.rss
@@ -309,21 +312,18 @@ pred_hsf <- function (.site,
     rast.stem <- subset(site.rast, c("a.stem", "TRT"))
     rast.ch <- subset(site.rast, c("a.ch", "TRT"))
     rast.cc2 <- subset(site.rast, c("a.cc", "TRT"))
-    rast.dOpen <- subset(site.rast, c("a.dOpen", "TRT"))
     rast.dDM <- subset(site.rast, c("a.dDM", "TRT"))
     
     # names
     names(rast.stem)[1] <- "avail"
     names(rast.ch)[1] <- "avail"
     names(rast.cc2)[1] <- "avail"
-    names(rast.dOpen)[1] <- "avail"
     names(rast.dDM)[1] <- "avail"
     
     # FR predictions
     beta.stem <- predict(object = rast.stem, model = on.stem, fun = predict.gam, se.fit = T)
     beta.ch <- predict(object = rast.ch, model = on.ch, fun = predict.gam, se.fit = T)
     beta.cc2 <- predict(object = rast.cc2, model = on.cc2, fun = predict.gam, se.fit = T)
-    beta.dOpen <- predict(object = rast.dOpen, model = on.dOpen, fun = predict.gam, se.fit = T)
     beta.dDM <- predict(object = rast.dDM, model = on.dDM, fun = predict.gam, se.fit = T)
     
     # Monte Carlo predictions
@@ -336,10 +336,10 @@ pred_hsf <- function (.site,
       beta.stem.i <- sample.betas(beta.stem)
       beta.ch.i <- sample.betas(beta.ch)
       beta.cc2.i <- sample.betas(beta.cc2)
-      beta.dOpen.i <- sample.betas(beta.dOpen)
       beta.dDM.i <- sample.betas(beta.dDM)
       
       # sample other coefs (non-spatially varying)
+      beta.dOpen.i <- rnorm(1, hsf$mean[hsf$param == "dOpen"], hsf$sd[hsf$param == "dOpen"])
       beta.ed.i <- rnorm(1, hsf$mean[hsf$param == "ed"], hsf$sd[hsf$param == "ed"])
       beta.cc.i <- rnorm(1, hsf$mean[hsf$param == "cc"], hsf$sd[hsf$param == "cc"])
       beta.twi.i <- rnorm(1, hsf$mean[hsf$param == "twi"], hsf$sd[hsf$param == "twi"])
@@ -411,7 +411,7 @@ map_hsf <- function (.rast,
   focal.rast <- crop(.rast, vect(focal.bbox)) 
     
   # clamp to reasonable value
-  focal.rast$mean <- clamp(focal.rast$mean, upper = quantile(values(focal.rast$mean), prob = 0.99))
+  focal.rast$mean <- clamp(focal.rast$mean, upper = quantile(values(focal.rast$mean), prob = 0.99, na.rm = T))
     
   # plot
   ggplot() +
@@ -457,8 +457,8 @@ map_hsf_2 <- function (.rast1,
   focal.rast2 <- crop(.rast2, vect(focal.bbox))
   
   # clamp to reasonable value
-  focal.rast1$mean <- clamp(focal.rast1$mean, upper = quantile(values(focal.rast1$mean), prob = 0.99))
-  focal.rast2$mean <- clamp(focal.rast2$mean, upper = quantile(values(focal.rast2$mean), prob = 0.99))
+  focal.rast1$mean <- clamp(focal.rast1$mean, upper = quantile(values(focal.rast1$mean), prob = 0.95, na.rm = T))
+  focal.rast2$mean <- clamp(focal.rast2$mean, upper = quantile(values(focal.rast2$mean), prob = 0.95, na.rm = T))
   
   # add together
   focal.rasts <- c(focal.rast1$mean, focal.rast2$mean)
@@ -512,7 +512,7 @@ map_hsf_change <- function (.rast1,
   
   # difference
   # if RSS
-  if (min(values(focal.rast2) > 0)) {
+  if (min(values(focal.rast2), na.rm = T) > 0) {
     
     focal.rast.diff <- log(focal.rast2 / focal.rast1)
     
@@ -525,8 +525,8 @@ map_hsf_change <- function (.rast1,
   
   # clamp to reasonable values
   focal.rast.diff$mean <- clamp(focal.rast.diff$mean, 
-                                lower = quantile(values(focal.rast.diff$mean), prob = 0.01),
-                                upper = quantile(values(focal.rast.diff$mean), prob = 0.99))
+                                lower = quantile(values(focal.rast.diff$mean), prob = 0.01, na.rm = T),
+                                upper = quantile(values(focal.rast.diff$mean), prob = 0.99, na.rm = T))
   
   # plot
   ggplot() +
@@ -567,7 +567,7 @@ on.pre.1A <- pred_hsf("1A", "on", "pre")
 on.post.1A <- pred_hsf("1A", "on", "post")
 
 map_hsf_2(off.pre.1A, off.post.1A, "1A")
-map_hsf_2(on.pre.1A, on.post.1A, "1A")    # need a better clamp here
+map_hsf_2(on.pre.1A, on.post.1A, "1A")
 
 map_hsf_change(off.pre.1A, off.post.1A, "1A")
 map_hsf_change(on.pre.1A, on.post.1A, "1A")
@@ -591,15 +591,12 @@ map_hsf_change(on.pre.1B, on.post.1B, "1B")
 # ______________________________________________________________________________
 
 # 1C
-off.pre.1C <- pred_hsf("1C", "off", "pre")
-off.post.1C <- pred_hsf("1C", "off", "post")
-
-on.pre.1C <- pred_hsf("1C", "on", "pre")
-on.post.1C <- pred_hsf("1C", "on", "post")
+off.1C <- pred_hsf("1C", "off", "post")
+on.1C <- pred_hsf("1C", "on", "post")
 
 # 1C
-map_hsf_2(off.pre.1C, off.post.1C, "1C")
-map_hsf_2(on.pre.1C, on.post.1C, "1C")
+map_hsf(off.1C, "1C")
+map_hsf(on.1C, "1C")
 
 # ______________________________________________________________________________
 # 7b. 2 - Crazy Beetle Bug ----
@@ -635,5 +632,92 @@ map_hsf_change(on.pre.2B, on.post.2B, "2B")
 
 # ______________________________________________________________________________
 
+# 2C
+off.2C <- pred_hsf("2C", "off", "post")
+on.2C <- pred_hsf("2C", "on", "post")
 
+map_hsf(off.2C, "2C")
+map_hsf(on.2C, "2C")
+
+# ______________________________________________________________________________
+# 7c. 3 - Beetlejuice Bug ----
+# ______________________________________________________________________________
+
+# 3A
+off.pre.3A <- pred_hsf("3A", "off", "pre")
+off.post.3A <- pred_hsf("3A", "off", "post")
+
+on.pre.3A <- pred_hsf("3A", "on", "pre")
+on.post.3A <- pred_hsf("3A", "on", "post")
+
+map_hsf_2(off.pre.3A, off.post.3A, "3A")
+map_hsf_2(on.pre.3A, on.post.3A, "3A")
+
+map_hsf_change(off.pre.3A, off.post.3A, "3A")
+map_hsf_change(on.pre.3A, on.post.3A, "3A")
+
+# ______________________________________________________________________________
+
+# 3B
+off.pre.3B <- pred_hsf("3B", "off", "pre")
+off.post.3B <- pred_hsf("3B", "off", "post")
+
+on.pre.3B <- pred_hsf("3B", "on", "pre")
+on.post.3B <- pred_hsf("3B", "on", "post")
+
+map_hsf_2(off.pre.3B, off.post.3B, "3B")
+map_hsf_2(on.pre.3B, on.post.3B, "3B")
+
+map_hsf_change(off.pre.3B, off.post.3B, "3B")
+map_hsf_change(on.pre.3B, on.post.3B, "3B")
+
+# ______________________________________________________________________________
+
+# 3C
+off.3C <- pred_hsf("3C", "off", "post")
+on.3C <- pred_hsf("3C", "on", "post")
+
+map_hsf(off.3C, "3C")
+map_hsf(on.3C, "3C")
+
+# ______________________________________________________________________________
+# 7c. 3 - Beetlejuice Bug ----
+# ______________________________________________________________________________
+
+# 4A
+off.pre.4A <- pred_hsf("4A", "off", "pre")
+off.post.4A <- pred_hsf("4A", "off", "post")
+
+on.pre.4A <- pred_hsf("4A", "on", "pre")
+on.post.4A <- pred_hsf("4A", "on", "post")
+
+map_hsf_2(off.pre.4A, off.post.4A, "4A")
+map_hsf_2(on.pre.4A, on.post.4A, "4A")
+
+map_hsf_change(off.pre.4A, off.post.4A, "4A")
+map_hsf_change(on.pre.4A, on.post.4A, "4A")
+
+# ______________________________________________________________________________
+
+# 4B
+off.pre.4B <- pred_hsf("4B", "off", "pre")
+off.post.4B <- pred_hsf("4B", "off", "post")
+
+on.pre.4B <- pred_hsf("4B", "on", "pre")
+on.post.4B <- pred_hsf("4B", "on", "post")
+
+map_hsf_2(off.pre.4B, off.post.4B, "4B")
+map_hsf_2(on.pre.4B, on.post.4B, "4B")
+
+map_hsf_change(off.pre.4B, off.post.4B, "4B")
+map_hsf_change(on.pre.4B, on.post.4B, "4B")
+
+# ______________________________________________________________________________
+
+# 4C
+off.4C <- pred_hsf("4C", "off", "post")
+on.4C <- pred_hsf("4C", "on", "post")
+
+map_hsf(off.4C, "4C")
+map_hsf(on.4C, "4C")
 

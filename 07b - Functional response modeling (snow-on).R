@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 05 Jun 2026
+# LAST MODIFIED: 11 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -173,23 +173,32 @@ aic_tab(models.cc)  # M1
 
 models.cc2 <- fr_model("cc2", "a.cc")
 
-aic_tab(models.cc2)  # M2
+aic_tab(models.cc2)  # M4
 
-summary(models.cc2[[2]])
-plot(models.cc2[[2]])
-appraise(models.cc2[[2]])
+summary(models.cc2[[4]])
+plot(models.cc2[[4]])
+appraise(models.cc2[[4]])
 
 # ______________________________________________________________________________
-# 5d. dOpen ----
+# 5d. dOM ----
+
+# weird outlier leading to a ridiculous relationship
+test <- fr.data |> filter(param == "dOM")
+
+plot(test$a.dOM, test$beta)
+
+# let's remove it for the model
+fr.data <- fr.data |> filter(beta < 2.5)
+
 # ______________________________________________________________________________
 
-models.dOpen <- fr_model("dOpen", "a.dOpen")
+models.dOM <- fr_model("dOM", "a.dOM")
 
-aic_tab(models.dOpen)  # M4
+aic_tab(models.dOM)  # M2
 
-summary(models.dOpen[[4]])
-plot(models.dOpen[[4]])
-appraise(models.dOpen[[4]])
+summary(models.dOM[[2]])
+plot(models.dOM[[2]])
+appraise(models.dOM[[2]])
 
 # ______________________________________________________________________________
 # 5e. dDM ----
@@ -197,11 +206,11 @@ appraise(models.dOpen[[4]])
 
 models.dDM <- fr_model("dDM", "a.dDM")
 
-aic_tab(models.dDM)  # M4
+aic_tab(models.dDM)  # M3
 
-summary(models.dDM[[4]])
-plot(models.dDM[[4]])
-appraise(models.dDM[[4]])
+summary(models.dDM[[3]])
+#plot(models.dDM[[3]])
+appraise(models.dDM[[3]])
 
 # ______________________________________________________________________________
 # 5f. ed ----
@@ -216,11 +225,24 @@ summary(models.ed[[1]])
 appraise(models.ed[[1]])
 
 # ______________________________________________________________________________
+# 5g. shdi ----
+# ______________________________________________________________________________
+
+models.shdi <- fr_model("shdi", "a.shdi")
+
+aic_tab(models.shdi)  # M2
+
+summary(models.shdi[[2]])
+plot(models.shdi[[2]])
+appraise(models.shdi[[2]])
+
+# ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.stem[[4]], "model_results/fr_models/on_stem.rds")
 saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
-saveRDS(models.cc2[[2]], "model_results/fr_models/on_cc2.rds")
-saveRDS(models.dOpen[[4]], "model_results/fr_models/on_dOpen.rds")
-saveRDS(models.dDM[[4]], "model_results/fr_models/on_dDM.rds")
+saveRDS(models.cc2[[4]], "model_results/fr_models/on_cc2.rds")
+saveRDS(models.dOM[[2]], "model_results/fr_models/on_dOM.rds")
+saveRDS(models.dDM[[3]], "model_results/fr_models/on_dDM.rds")
+saveRDS(models.shdi[[2]], "model_results/fr_models/on_shdi.rds")

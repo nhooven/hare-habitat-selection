@@ -63,6 +63,14 @@ prep_1 <- function (x) {
         year == "PRE" ~ stem.pre,
         year %in% c("POST1", "POST2") ~ stem.post
         
+      ),
+      
+      # shdi
+      shdi = case_when(
+        
+        year == "PRE" ~ shdi.pre,
+        year %in% c("POST1", "POST2") ~ shdi.post
+        
       )
       
     ) |>
@@ -77,7 +85,9 @@ prep_1 <- function (x) {
          cc.pre,
          cc.post,
          vo.pre,
-         vo.post)
+         vo.post,
+         shdi.pre,
+         shdi.post)
       
     ) |>
     
@@ -86,8 +96,9 @@ prep_1 <- function (x) {
       
       c(
         
-        dOpen,
+        dOM,
         dDM,
+        shdi,
         ch,
         cc,
         ed,
@@ -122,9 +133,10 @@ prep_1 <- function (x) {
       cc,
       twi,
       vrm,
-      dOpen,
+      dOM,
       dDM,
-      ed
+      ed,
+      shdi
       
     )
   
@@ -143,8 +155,8 @@ data.on.1 <- prep_1(data.on)
 data.off.attr <- data.off.1 |> dplyr::select(track_season_post:akde)
 data.on.attr <- data.on.1 |> dplyr::select(track_season_post:akde)
 
-data.off.cov <- data.off.1 |> dplyr::select(vo:ed)
-data.on.cov <- data.on.1 |> dplyr::select(vo:ed)
+data.off.cov <- data.off.1 |> dplyr::select(vo:shdi)
+data.on.cov <- data.on.1 |> dplyr::select(vo:shdi)
 
 # ______________________________________________________________________________
 # 6. Transformations ----

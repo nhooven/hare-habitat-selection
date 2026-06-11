@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 02 Jun 2026
+# LAST MODIFIED: 09 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -28,7 +28,7 @@ rast.cover.pre <- rast(paste0(dir.rast, "cover_type/cover_type_pre.tif"))
 rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # distance 
-rast.dOpen <- rast(paste0(dir.rast, "dist_rasters/dOpen.tif"))
+rast.dOM <- rast(paste0(dir.rast, "dist_rasters/dOM_new.tif"))
 rast.dDM <- rast(paste0(dir.rast, "dist_rasters/dDM.tif"))
 
 # vegetation models
@@ -40,11 +40,6 @@ rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
-
-# PCT
-#rast.dPil <-  rast(paste0(dir.rast, "PCT/dPiles.tif"))
-#rast.dRet <-  rast(paste0(dir.rast, "PCT/dRet.tif"))
-#rast.dUnitInt <- rast(paste0(dir.rast, "PCT/dUnitInt.tif"))
 
 # ______________________________________________________________________________
 # 3. Mosaic canopy layers ----
@@ -281,9 +276,11 @@ ext(rast.cover.pre)
 rast.all <- c(
   
   # landscape
-  resample(rast.dOpen, rast.cover.pre),
+  resample(rast.dOM, rast.cover.pre),
   resample(rast.dDM, rast.cover.pre),
   resample(rast.ed, rast.cover.pre),
+  resample(rast.shdi.100.pre, rast.cover.pre),
+  resample(rast.shdi.100.post, rast.cover.pre),
   
   # canopy
   resample(rast.ch.pre, rast.cover.pre),
@@ -306,7 +303,8 @@ rast.all <- c(
 # change names
 names(rast.all) <- c(
   
-  "dOpen", "dDM", "ed",
+  "dOM", "dDM", "ed",
+  "shdi.pre", "shdi.post",
   "ch.pre", "ch.post", "cc.pre", "cc.post",
   "stem.pre", "stem.post", "vo.pre", "vo.post",
   "twi", "vrm"

@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 05 Jun 2026
-# LAST MODIFIED: 05 Jun 2026
+# LAST MODIFIED: 11 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -23,16 +23,55 @@ hs.data <- readRDS("data_for_model/on_data.rds")
 # residuals for log(AKDE)
 hs.data$g.s <- residuals(lm(log(akde) ~ stem + ch + cc + cc2 + 
                                twi + twi2 + vrm + vrm2 + 
-                               dOpen + dDM + ed,
+                               dOM + dDM + ed + shdi,
                              data = hs.data))
 
 # ______________________________________________________________________________
-# 3. Correlation ----
+# 3. Correlation and VIF ----
+
+# VIF function
+# input is a df of covariates
+calc_vif <- function (x) {
+  
+  all.vif <- data.frame()
+  
+  for (j in 1:ncol(x)) {
+    
+    x.1 <- cbind(x[ ,j], x[ ,-j])
+    
+    # rename response
+    names(x.1)[1] <- "response"
+    
+    x.lm <- lm(response ~ ., data = x.1)
+    
+    # extract r2
+    r2 <- summary(x.lm)$r.squared
+    
+    # calculate VIF
+    vif.1 <- 1 / (1 - r2)
+    
+    # bind in
+    all.vif <- rbind(all.vif,
+                     data.frame(cov = names(x)[j],
+                                vif = vif.1))
+    
+  }
+  
+  return(all.vif)
+  
+}
+
 # ______________________________________________________________________________
 
-covs.lin <- c("stem", "ch", "cc", "twi", "vrm", "dOpen", "dDM", "ed", "g.s")
+# subset just the linear coefficients
+# assume squared terms will be highly correlated to their linear terms
+covs.lin <- hs.data |> dplyr::select(stem, ch, cc, twi, vrm, dOM, dDM, ed, shdi, g.s)
 
-cor(hs.data |> dplyr::select(covs.lin), method = "spearman")
+# correlation
+cor(covs.lin, method = "spearman") |> round(2)   # nothing over 0.65
+
+# VIF
+calc_vif(covs.lin)  # all < 2.1
 
 # ______________________________________________________________________________
 # 3. Setup ----
@@ -58,7 +97,8 @@ hs.data <- hs.data |>
     TSPID9 = TSPID,
     TSPID10 = TSPID,
     TSPID11 = TSPID,
-    TSPID12 = TSPID
+    TSPID12 = TSPID,
+    TSPID13 = TSPID
     
   )
 
@@ -100,9 +140,10 @@ M.form <- case ~
   twi + twi2 + vrm + vrm2 +
   
   # LAND
-  dOpen +
+  dOM +
   dDM + 
-  ed + 
+  ed +
+  shdi +
   
   # random intercepts
   f(TSPID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -117,9 +158,10 @@ M.form <- case ~
   f(TSPID7, twi2, model = "iid", hyper = hyper.list) +
   f(TSPID8, vrm, model = "iid", hyper = hyper.list) +
   f(TSPID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(TSPID10, dOpen, model = "iid", hyper = hyper.list) +
+  f(TSPID10, dOM, model = "iid", hyper = hyper.list) +
   f(TSPID11, dDM, model = "iid", hyper = hyper.list) +
-  f(TSPID12, ed, model = "iid", hyper = hyper.list)
+  f(TSPID12, ed, model = "iid", hyper = hyper.list) +
+  f(TSPID13, shdi, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 5. Fit model ----

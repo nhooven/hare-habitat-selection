@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 05 Jun 2026
+# LAST MODIFIED: 09 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -143,7 +143,7 @@ aic_tab <- function(.models) {
 # 5a. VO ----
 # ______________________________________________________________________________
 
-models.vo <- fr_model("vo", "a.vo", "cr")
+models.vo <- fr_model("vo", "a.vo")
 
 aic_tab(models.vo)  # M4
 
@@ -176,16 +176,16 @@ models.cc2 <- fr_model("cc2", "a.cc")
 aic_tab(models.cc2)  # M1
 
 # ______________________________________________________________________________
-# 5d. dOpen ----
+# 5d. dOM ----
 # ______________________________________________________________________________
 
-models.dOpen <- fr_model("dOpen", "a.dOpen")
+models.dOM <- fr_model("dOM", "a.dOM")
 
-aic_tab(models.dOpen)  # M2
+aic_tab(models.dOM)  # M4
 
-summary(models.dOpen[[2]])
-plot(models.dOpen[[2]])
-appraise(models.dOpen[[2]])
+summary(models.dOM[[4]])
+plot(models.dOM[[4]])
+appraise(models.dOM[[4]])
 
 # ______________________________________________________________________________
 # 5e. dDM ----
@@ -205,17 +205,29 @@ appraise(models.dDM[[3]])
 
 models.ed <- fr_model("ed", "a.ed")
 
-aic_tab(models.ed)  # M4
+aic_tab(models.ed)  # M1
 
-summary(models.ed[[4]])
-plot(models.ed[[4]])
-appraise(models.ed[[4]])
+#summary(models.ed[[1]])
+#plot(models.ed[[1]])
+#appraise(models.ed[[1]])
+
+# ______________________________________________________________________________
+# 5g. shdi ----
+# ______________________________________________________________________________
+
+models.shdi <- fr_model("shdi", "a.shdi")
+
+aic_tab(models.shdi)  # M4
+
+summary(models.shdi[[4]])
+plot(models.shdi[[4]])
+appraise(models.shdi[[4]])
 
 # ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.vo[[4]], "model_results/fr_models/off_vo.rds")
-saveRDS(models.dOpen[[2]], "model_results/fr_models/off_dOpen.rds")
+saveRDS(models.dOM[[4]], "model_results/fr_models/off_dOM.rds")
 saveRDS(models.dDM[[3]], "model_results/fr_models/off_dDM.rds")
-saveRDS(models.ed[[4]], "model_results/fr_models/off_ed.rds")
+saveRDS(models.shdi[[4]], "model_results/fr_models/off_shdi.rds")
