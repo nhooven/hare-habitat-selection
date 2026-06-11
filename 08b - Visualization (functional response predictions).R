@@ -1,5 +1,5 @@
 # PROJECT: Habitat selection
-# SCRIPT: 08a - Visualization (functional response predictions)
+# SCRIPT: 08b - Visualization (functional response predictions)
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026

@@ -1,10 +1,10 @@
 # PROJECT: Habitat selection
-# SCRIPT: 06 - Process results for functional response models
+# SCRIPT: 06b - Process results for functional response models
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 04 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 05 Jun 2026
+# LAST MODIFIED: 11 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -25,6 +25,9 @@ M.on <- readRDS("model_results/M_on.rds")
 data.off <- readRDS("data_cleaned/data_off.rds")
 data.on <- readRDS("data_cleaned/data_on.rds")
 
+# HR metrics
+hr.metrics <- readRDS("data_cleaned/all_hr_metrics.rds")
+
 # ______________________________________________________________________________
 # 3. Join slopes and (deviation) SEs together ----
 # ______________________________________________________________________________
@@ -38,7 +41,7 @@ join_slopes <- function (.slopes, .sds, .season) {
   slopes.joined <- .slopes |> 
     
     # pivot slopes
-    pivot_longer(cols = vo:ed) |>
+    pivot_longer(cols = vo:shdi) |>
     
     rename(param = name,
            beta = value) |>
@@ -48,7 +51,7 @@ join_slopes <- function (.slopes, .sds, .season) {
       
       .sds |> 
         
-        pivot_longer(cols = vo:ed) |>
+        pivot_longer(cols = vo:shdi) |>
         
         rename(param = name,
                sd = value)
@@ -61,7 +64,7 @@ join_slopes <- function (.slopes, .sds, .season) {
     slopes.joined <- .slopes |> 
       
       # pivot slopes
-      pivot_longer(cols = stem:ed) |>
+      pivot_longer(cols = stem:shdi) |>
       
       rename(param = name,
              beta = value) |>
@@ -71,7 +74,7 @@ join_slopes <- function (.slopes, .sds, .season) {
         
         .sds |> 
           
-          pivot_longer(cols = stem:ed) |>
+          pivot_longer(cols = stem:shdi) |>
           
           rename(param = name,
                  sd = value)
@@ -133,6 +136,14 @@ calc_fr <- function (.data) {
         year == "PRE" ~ stem.pre,
         year %in% c("POST1", "POST2") ~ stem.post
         
+      ),
+        
+      # shdi
+      shdi = case_when(
+        
+        year == "PRE" ~ shdi.pre,
+        year %in% c("POST1", "POST2") ~ shdi.post
+        
       )
       
     ) |>
@@ -143,9 +154,10 @@ calc_fr <- function (.data) {
               a.stem = mean(stem),
               a.ch = mean(ch),
               a.cc = mean(cc),
-              a.dOpen = mean(dOpen),
+              a.dOM = mean(dOM),
               a.dDM = mean(dDM),
-              a.ed = mean(ed)) |>
+              a.ed = mean(ed),
+              a.shdi = mean(shdi)) |>
     
     rename(TSPID = track_season_post)
   
@@ -185,9 +197,15 @@ off.fr <- left_join(off.slopes, calc_fr(data.off))
 on.fr <- left_join(on.slopes, calc_fr(data.on))
 
 # ______________________________________________________________________________
-# 5. Save to file ----
+# 5. Join in HR metrics ----
 # ______________________________________________________________________________
 
-saveRDS(off.fr, "data_for_model/off_fr.rds")
-saveRDS(on.fr, "data_for_model/on_fr.rds")
+off.fr.1 <- left_join(off.fr, hr.metrics)
+on.fr.1 <- left_join(on.fr, hr.metrics)
 
+# ______________________________________________________________________________
+# 6. Save to file ----
+# ______________________________________________________________________________
+
+saveRDS(off.fr.1, "data_for_model/off_fr.rds")
+saveRDS(on.fr.1, "data_for_model/on_fr.rds")

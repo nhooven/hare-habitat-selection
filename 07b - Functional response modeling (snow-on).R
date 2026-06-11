@@ -164,53 +164,37 @@ plot(models.ch[[4]])
 appraise(models.ch[[4]])
 
 # ______________________________________________________________________________
-# 5c. CC and CC2 ----
-# ______________________________________________________________________________
-
-models.cc <- fr_model("cc", "a.cc")
-
-aic_tab(models.cc)  # M1
-
-models.cc2 <- fr_model("cc2", "a.cc")
-
-aic_tab(models.cc2)  # M4
-
-summary(models.cc2[[4]])
-plot(models.cc2[[4]])
-appraise(models.cc2[[4]])
-
-# ______________________________________________________________________________
-# 5d. dOM ----
+# 5c. dOM ----
 
 # weird outlier leading to a ridiculous relationship
 test <- fr.data |> filter(param == "dOM")
 
-plot(test$a.dOM, test$beta)
+plot(test$pOM, test$beta)
 
 # let's remove it for the model
 fr.data <- fr.data |> filter(beta < 2.5)
 
 # ______________________________________________________________________________
 
-models.dOM <- fr_model("dOM", "a.dOM")
+models.dOM <- fr_model("dOM", "pOM")
 
-aic_tab(models.dOM)  # M2
+aic_tab(models.dOM)  # M1
 
-summary(models.dOM[[2]])
-plot(models.dOM[[2]])
-appraise(models.dOM[[2]])
+#summary(models.dOM[[2]])
+#plot(models.dOM[[2]])
+#appraise(models.dOM[[2]])
 
 # ______________________________________________________________________________
 # 5e. dDM ----
 # ______________________________________________________________________________
 
-models.dDM <- fr_model("dDM", "a.dDM")
+models.dDM <- fr_model("dDM", "pDM")
 
 aic_tab(models.dDM)  # M3
 
-summary(models.dDM[[3]])
-#plot(models.dDM[[3]])
-appraise(models.dDM[[3]])
+summary(models.dDM[[4]])
+plot(models.dDM[[4]])
+appraise(models.dDM[[4]])
 
 # ______________________________________________________________________________
 # 5f. ed ----
@@ -228,7 +212,7 @@ appraise(models.ed[[1]])
 # 5g. shdi ----
 # ______________________________________________________________________________
 
-models.shdi <- fr_model("shdi", "a.shdi")
+models.shdi <- fr_model("shdi", "shdi")
 
 aic_tab(models.shdi)  # M2
 
@@ -237,12 +221,113 @@ plot(models.shdi[[2]])
 appraise(models.shdi[[2]])
 
 # ______________________________________________________________________________
+# 5c. CC and CC2 ----
+
+# we need to think of these terms as part of the same parabola
+test <- fr.data |> filter(param %in% c("cc", "cc2")) |> 
+  
+  dplyr::select(TSPID, param, beta) |>
+  
+  pivot_wider(names_from = param,
+              values_from = beta)
+
+plot(test$cc, test$cc2)
+
+# STRONG correlation here
+# let's try a tensor product spline
+
+# visualize the correlation
+cc.spline <- gam(
+  
+  cc2 ~ s(cc, bs = "cr"),
+  data = test,
+  family = "gaussian",
+  method = "REML"
+  
+) |>
+  
+  plot()
+
+# ______________________________________________________________________________
+
+# clean data
+cc.data <- fr.data |> 
+  
+  filter(param == "cc") |>
+  
+  dplyr::select(TSPID, param, beta, sd, a.cc, TRT) |>
+  
+  mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
+         w = 1 / sd^2) |>
+  
+  bind_cols(
+    
+    fr.data |> filter(param == "cc2") |> dplyr::select(beta) |> rename(cc2 = beta)
+    
+  )
+
+# initialize model list
+cc.model.list <- list()
+
+# models
+# M1 - NULL
+cc.model.list[[1]] <- gam(
+  
+  beta ~ cc2,
+  data = cc.data,
+  family = "gaussian",
+  method = "REML",
+  weights = w
+  
+)
+
+# M2 - FR
+cc.model.list[[2]] <- gam(
+  
+  beta ~ te(cc2, a.cc, bs = "cr"),
+  data = cc.data,
+  family = "gaussian",
+  method = "REML",
+  weights = w
+  
+)
+
+# M3 - TRT
+cc.model.list[[3]] <- gam(
+  
+  beta ~ s(cc2, by = TRT, bs = "cr"),
+  data = cc.data,
+  family = "gaussian",
+  method = "REML",
+  weights = w
+  
+)
+
+# M4 - FR x TRT
+cc.model.list[[4]] <- gam(
+  
+  beta ~ te(cc2, a.cc, by = TRT, bs = "cr"),
+  data = cc.data,
+  family = "gaussian",
+  method = "REML",
+  weights = w
+  
+)
+
+# AIC table
+aic_tab(cc.model.list) # M4
+
+summary(cc.model.list[[4]])
+plot(cc.model.list[[4]])
+appraise(cc.model.list[[4]])
+
+# ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.stem[[4]], "model_results/fr_models/on_stem.rds")
 saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
-saveRDS(models.cc2[[4]], "model_results/fr_models/on_cc2.rds")
-saveRDS(models.dOM[[2]], "model_results/fr_models/on_dOM.rds")
-saveRDS(models.dDM[[3]], "model_results/fr_models/on_dDM.rds")
+saveRDS(models.dDM[[4]], "model_results/fr_models/on_dDM.rds")
 saveRDS(models.shdi[[2]], "model_results/fr_models/on_shdi.rds")
+
+saveRDS(cc.model.list[[4]], "model_results/fr_models/on_cc.rds")

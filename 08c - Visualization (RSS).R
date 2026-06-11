@@ -1,5 +1,5 @@
 # PROJECT: Habitat selection
-# SCRIPT: 08b - Visualization (RSS)
+# SCRIPT: 08c - Visualization (RSS)
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026

@@ -1,5 +1,5 @@
 # PROJECT: Habitat selection
-# SCRIPT: 08c - Visualization (Maps)
+# SCRIPT: 08d - Visualization (Maps)
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
