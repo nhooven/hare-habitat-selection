@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 15 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -310,7 +310,8 @@ ggplot() +
   facet_wrap(~ group,
              scales = "free_y",
              nrow = 3,
-             strip.position = "right") +
+             strip.position = "right",
+             space = "free_y") +      # ggplot says I can't use this, but it works anyway
   
   # vertical line
   geom_vline(xintercept = 0,
@@ -352,11 +353,11 @@ ggplot() +
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         
-        legend.position = c(0.85, 0.15),
+        legend.position = c(0.82, 0.15),
         legend.background = element_rect(fill = "white",
                                          color = "gray"),
         legend.title = element_blank(),
-        
+        legend.margin = margin(1, 10, 1, 0.5),  # TRBL
         axis.title.y = element_blank(),
         axis.text = element_text(color = "black",
                                  size = 8),
@@ -379,4 +380,3 @@ ggplot() +
   scale_y_discrete(limits = rev)
 
 # 465 x 481
-# change legend spacing, margins
