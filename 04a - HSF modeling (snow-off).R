@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 16 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -23,7 +23,7 @@ hs.data <- readRDS("data_for_model/off_data.rds")
 # residuals for log(AKDE)
 hs.data$g.s <- residuals(lm(log(akde) ~ vo + ch + cc + cc2 + 
                                twi + twi2 + vrm + vrm2 + 
-                               dOM + dDM + ed + shdi,
+                               dOM + dDM + ed,
                              data = hs.data))
 
 # ______________________________________________________________________________
@@ -65,13 +65,13 @@ calc_vif <- function (x) {
 
 # subset just the linear coefficients
 # assume squared terms will be highly correlated to their linear terms
-covs.lin <- hs.data |> dplyr::select(vo, ch, cc, twi, vrm, dOM, dDM, ed, shdi, g.s)
+covs.lin <- hs.data |> dplyr::select(vo, ch, cc, twi, vrm, dOM, dDM, ed, g.s)
 
 # correlation
-cor(covs.lin, method = "spearman") |> round(2)   # nothing over 0.65
+cor(covs.lin, method = "spearman") |> round(2)   # nothing over 0.55
 
 # VIF
-calc_vif(covs.lin)  # all < 2.5
+calc_vif(covs.lin)  # all < 2.1
 
 # ______________________________________________________________________________
 # 3. Setup ----
@@ -97,8 +97,7 @@ hs.data <- hs.data |>
     TSPID9 = TSPID,
     TSPID10 = TSPID,
     TSPID11 = TSPID,
-    TSPID12 = TSPID,
-    TSPID13 = TSPID
+    TSPID12 = TSPID
     
   )
 
@@ -143,7 +142,6 @@ M.form <- case ~
   dOM +
   dDM + 
   ed +
-  shdi +
   
   # random intercepts
   f(TSPID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -160,8 +158,7 @@ M.form <- case ~
   f(TSPID9, vrm2, model = "iid", hyper = hyper.list) +
   f(TSPID10, dOM, model = "iid", hyper = hyper.list) +
   f(TSPID11, dDM, model = "iid", hyper = hyper.list) +
-  f(TSPID12, ed, model = "iid", hyper = hyper.list) +
-  f(TSPID13, shdi, model = "iid", hyper = hyper.list)
+  f(TSPID12, ed, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 5. Fit model ----

@@ -22,6 +22,19 @@ library(gratia)
 fr.data <- readRDS("data_for_model/off_fr.rds")
 
 # ______________________________________________________________________________
+# 3. Examine availability distributions ----
+# ______________________________________________________________________________
+
+tsp.data <- fr.data |> group_by(TSPID) |> slice(1) 
+
+hist(tsp.data$a.vo)
+hist(tsp.data$a.stem)
+hist(tsp.data$a.ch)
+hist(tsp.data$a.cc)
+hist(tsp.data$pOM)   
+hist(tsp.data$pDM)   
+
+# ______________________________________________________________________________
 # 3. Function - Fit models ----
 # ______________________________________________________________________________
 
@@ -285,11 +298,11 @@ appraise(cc.model.list[[3]])
 
 models.dOM <- fr_model("dOM", "pOM")
 
-aic_tab(models.dOM)  # M4
+aic_tab(models.dOM)  # M3
 
-summary(models.dOM[[4]])
-plot(models.dOM[[4]])
-appraise(models.dOM[[4]])
+summary(models.dOM[[3]])
+#plot(models.dOM[[3]])
+appraise(models.dOM[[3]])
 
 # ______________________________________________________________________________
 # 5e. dDM ----
@@ -300,7 +313,7 @@ models.dDM <- fr_model("dDM", "pDM")
 aic_tab(models.dDM)  # M3
 
 summary(models.dDM[[3]])
-plot(models.dDM[[3]])
+#plot(models.dDM[[3]])
 appraise(models.dDM[[3]])
 
 # ______________________________________________________________________________
@@ -316,24 +329,11 @@ summary(models.ed[[1]])
 #appraise(models.ed[[1]])
 
 # ______________________________________________________________________________
-# 5g. shdi ----
-# ______________________________________________________________________________
-
-models.shdi <- fr_model("shdi", "shdi")
-
-aic_tab(models.shdi)  # M2
-
-summary(models.shdi[[2]])
-plot(models.shdi[[2]])
-appraise(models.shdi[[2]])
-
-# ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.vo[[4]], "model_results/fr_models/off_vo.rds")
-saveRDS(models.dOM[[4]], "model_results/fr_models/off_dOM.rds")
+saveRDS(models.dOM[[3]], "model_results/fr_models/off_dOM.rds")
 saveRDS(models.dDM[[3]], "model_results/fr_models/off_dDM.rds")
-saveRDS(models.shdi[[2]], "model_results/fr_models/off_shdi.rds")
 
 saveRDS(cc.model.list[[3]], "model_results/fr_models/off_cc.rds")

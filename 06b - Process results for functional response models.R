@@ -41,7 +41,7 @@ join_slopes <- function (.slopes, .sds, .season) {
   slopes.joined <- .slopes |> 
     
     # pivot slopes
-    pivot_longer(cols = vo:shdi) |>
+    pivot_longer(cols = vo:ed) |>
     
     rename(param = name,
            beta = value) |>
@@ -51,7 +51,7 @@ join_slopes <- function (.slopes, .sds, .season) {
       
       .sds |> 
         
-        pivot_longer(cols = vo:shdi) |>
+        pivot_longer(cols = vo:ed) |>
         
         rename(param = name,
                sd = value)
@@ -64,7 +64,7 @@ join_slopes <- function (.slopes, .sds, .season) {
     slopes.joined <- .slopes |> 
       
       # pivot slopes
-      pivot_longer(cols = stem:shdi) |>
+      pivot_longer(cols = stem:ed) |>
       
       rename(param = name,
              beta = value) |>
@@ -74,7 +74,7 @@ join_slopes <- function (.slopes, .sds, .season) {
         
         .sds |> 
           
-          pivot_longer(cols = stem:shdi) |>
+          pivot_longer(cols = stem:ed) |>
           
           rename(param = name,
                  sd = value)
@@ -136,14 +136,6 @@ calc_fr <- function (.data) {
         year == "PRE" ~ stem.pre,
         year %in% c("POST1", "POST2") ~ stem.post
         
-      ),
-        
-      # shdi
-      shdi = case_when(
-        
-        year == "PRE" ~ shdi.pre,
-        year %in% c("POST1", "POST2") ~ shdi.post
-        
       )
       
     ) |>
@@ -156,8 +148,7 @@ calc_fr <- function (.data) {
               a.cc = mean(cc),
               a.dOM = mean(dOM),
               a.dDM = mean(dDM),
-              a.ed = mean(ed),
-              a.shdi = mean(shdi)) |>
+              a.ed = mean(ed)) |>
     
     rename(TSPID = track_season_post)
   

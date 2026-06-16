@@ -22,15 +22,12 @@ library(mgcv)
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
 off.dOM <- readRDS("model_results/fr_models/off_dOM.rds")
 off.dDM <- readRDS("model_results/fr_models/off_dDM.rds")
-off.shdi <- readRDS("model_results/fr_models/off_shdi.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
 on.ch <- readRDS("model_results/fr_models/on_ch.rds")
 #on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-#on.dOM <- readRDS("model_results/fr_models/on_dOM.rds")
 on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
-on.shdi <- readRDS("model_results/fr_models/on_shdi.rds")
 
 # data
 off.data <- readRDS("data_for_model/off_fr.rds")
@@ -77,6 +74,11 @@ fr_pred_plot <- function (
   # sequence of availability
   seq.avail <- seq(min(data.1$avail, na.rm = T), 
                    max(data.1$avail, na.rm = T), 
+                   length.out = 100)
+  
+  # quantiles instead?
+  seq.avail <- seq(quantile(data.1$avail, prob = 0.05, na.rm = T), 
+                   quantile(data.1$avail, prob = 0.95, na.rm = T), 
                    length.out = 100)
   
   # M2 - FR 
@@ -234,12 +236,10 @@ fr_pred_plot <- function (
 # ______________________________________________________________________________
 
 fr_pred_plot(off.vo, 4, "vo", "a.vo", "off") # ***
-fr_pred_plot(off.dOM, 4, "dOM", "pOM", "off")
+fr_pred_plot(off.dOM, 3, "dOM", "pOM", "off") # ***
 fr_pred_plot(off.dDM, 3, "dDM", "pDM", "off") # ***
-fr_pred_plot(off.shdi, 2, "shdi", "shdi", "off")
 
 fr_pred_plot(on.stem, 2, "stem", "a.stem", "on")
-fr_pred_plot(on.ch, 3, "ch", "a.ch", "on")
-fr_pred_plot(on.dDM, 3, "dDM", "pDM", "on") # ***
-fr_pred_plot(on.shdi, 2, "shdi", "shdi", "on")
+fr_pred_plot(on.ch, 4, "ch", "a.ch", "on")
+fr_pred_plot(on.dDM, 4, "dDM", "pDM", "on") # ***
 

@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 16 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -147,8 +147,7 @@ extract_RS <- function (.model) {
                           .model$summary.random$TSPID9$sd,
                           .model$summary.random$TSPID10$sd,
                           .model$summary.random$TSPID11$sd,
-                          .model$summary.random$TSPID12$sd,
-                          .model$summary.random$TSPID13$sd) |> as.data.frame()
+                          .model$summary.random$TSPID12$sd) |> as.data.frame()
   
   # parameter names
   colnames(cond.slopes) <- param.names

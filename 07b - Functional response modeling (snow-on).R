@@ -22,6 +22,19 @@ library(gratia)
 fr.data <- readRDS("data_for_model/on_fr.rds")
 
 # ______________________________________________________________________________
+# 3. Examine availability distributions ----
+# ______________________________________________________________________________
+
+tsp.data <- fr.data |> group_by(TSPID) |> slice(1) 
+
+hist(tsp.data$a.stem)
+hist(tsp.data$a.ch)
+hist(tsp.data$a.cc)
+hist(tsp.data$pOM)   
+hist(tsp.data$pDM)    # the majority of HRs don't contain any DM
+hist(tsp.data$a.ed)
+
+# ______________________________________________________________________________
 # 3. Function - Fit models ----
 # ______________________________________________________________________________
 
@@ -164,9 +177,9 @@ models.ch <- fr_model("ch", "a.ch")
 
 aic_tab(models.ch)  # M4
 
-summary(models.ch[[3]])
-plot(models.ch[[3]])
-appraise(models.ch[[3]])
+summary(models.ch[[4]])
+plot(models.ch[[4]])
+appraise(models.ch[[4]])
 
 # ______________________________________________________________________________
 # 5c. dOM ----
@@ -195,11 +208,11 @@ appraise(models.dOM[[1]])
 
 models.dDM <- fr_model("dDM", "pDM")
 
-aic_tab(models.dDM)  # M3
+aic_tab(models.dDM)  # M4
 
-summary(models.dDM[[3]])
-#plot(models.dDM[[3]])
-appraise(models.dDM[[3]])
+summary(models.dDM[[4]])
+plot(models.dDM[[4]])
+appraise(models.dDM[[4]])
 
 # ______________________________________________________________________________
 # 5f. ed ----
@@ -212,18 +225,6 @@ aic_tab(models.ed)  # M1
 summary(models.ed[[1]])
 #plot(models.ed[[1]])
 appraise(models.ed[[1]])
-
-# ______________________________________________________________________________
-# 5g. shdi ----
-# ______________________________________________________________________________
-
-models.shdi <- fr_model("shdi", "shdi")
-
-aic_tab(models.shdi)  # M2
-
-summary(models.shdi[[2]])
-plot(models.shdi[[2]])
-appraise(models.shdi[[2]])
 
 # ______________________________________________________________________________
 # 5c. CC and CC2 ----
@@ -338,8 +339,7 @@ appraise(cc.model.list[[4]])
 # ______________________________________________________________________________
 
 saveRDS(models.stem[[2]], "model_results/fr_models/on_stem.rds")
-saveRDS(models.ch[[3]], "model_results/fr_models/on_ch.rds")
-saveRDS(models.dDM[[3]], "model_results/fr_models/on_dDM.rds")
-saveRDS(models.shdi[[2]], "model_results/fr_models/on_shdi.rds")
+saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
+saveRDS(models.dDM[[4]], "model_results/fr_models/on_dDM.rds")
 
 saveRDS(cc.model.list[[4]], "model_results/fr_models/on_cc.rds")
