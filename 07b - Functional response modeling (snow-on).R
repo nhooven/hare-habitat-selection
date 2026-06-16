@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 16 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -25,7 +25,7 @@ fr.data <- readRDS("data_for_model/on_fr.rds")
 # 3. Function - Fit models ----
 # ______________________________________________________________________________
 
-fr_model <- function (.param, .avail, .smooth = "cs") {
+fr_model <- function (.param, .avail, .smooth = "cr") {
   
   # clean data
   focal.data <- fr.data |> 
@@ -35,7 +35,10 @@ fr_model <- function (.param, .avail, .smooth = "cs") {
     rename("avail" = .avail) |>
     
     mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
-           w = 1 / sd^2)
+           w = 1 / sd^2) |>
+    
+    # cluster factor
+    mutate(cluster = factor(cluster))
   
   # initialize model list
   model.list <- list()
@@ -44,7 +47,7 @@ fr_model <- function (.param, .avail, .smooth = "cs") {
   # M1 - NULL
   model.list[[1]] <- gam(
     
-    beta ~ 1,
+    beta ~ s(cluster, bs = "re"),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -55,7 +58,8 @@ fr_model <- function (.param, .avail, .smooth = "cs") {
   # M2 - FR
   model.list[[2]] <- gam(
     
-    beta ~ s(avail, bs = .smooth),
+    beta ~ s(cluster, bs = "re") +
+      s(avail, k = 5, m = 1, bs = .smooth),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -66,7 +70,7 @@ fr_model <- function (.param, .avail, .smooth = "cs") {
   # M3 - TRT
   model.list[[3]] <- gam(
     
-    beta ~ TRT,
+    beta ~ s(cluster, bs = "re") + TRT,
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -77,7 +81,8 @@ fr_model <- function (.param, .avail, .smooth = "cs") {
   # M4 - FR x TRT
   model.list[[4]] <- gam(
     
-    beta ~ s(avail, by = TRT, bs = .smooth),
+    beta ~ s(cluster, bs = "re") +
+      s(avail, k = 5, m = 1, by = TRT, bs = .smooth),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -145,11 +150,11 @@ aic_tab <- function(.models) {
 
 models.stem <- fr_model("stem", "a.stem")
 
-aic_tab(models.stem)  # M4
+aic_tab(models.stem)  # M2
 
-summary(models.stem[[4]])
-plot(models.stem[[4]])
-appraise(models.stem[[4]])
+summary(models.stem[[2]])
+plot(models.stem[[2]])
+appraise(models.stem[[2]])
 
 # ______________________________________________________________________________
 # 5b. CH ----
@@ -159,9 +164,9 @@ models.ch <- fr_model("ch", "a.ch")
 
 aic_tab(models.ch)  # M4
 
-summary(models.ch[[4]])
-plot(models.ch[[4]])
-appraise(models.ch[[4]])
+summary(models.ch[[3]])
+plot(models.ch[[3]])
+appraise(models.ch[[3]])
 
 # ______________________________________________________________________________
 # 5c. dOM ----
@@ -180,9 +185,9 @@ models.dOM <- fr_model("dOM", "pOM")
 
 aic_tab(models.dOM)  # M1
 
-#summary(models.dOM[[2]])
+summary(models.dOM[[1]])
 #plot(models.dOM[[2]])
-#appraise(models.dOM[[2]])
+appraise(models.dOM[[1]])
 
 # ______________________________________________________________________________
 # 5e. dDM ----
@@ -192,9 +197,9 @@ models.dDM <- fr_model("dDM", "pDM")
 
 aic_tab(models.dDM)  # M3
 
-summary(models.dDM[[4]])
-plot(models.dDM[[4]])
-appraise(models.dDM[[4]])
+summary(models.dDM[[3]])
+#plot(models.dDM[[3]])
+appraise(models.dDM[[3]])
 
 # ______________________________________________________________________________
 # 5f. ed ----
@@ -255,10 +260,13 @@ cc.data <- fr.data |>
   
   filter(param == "cc") |>
   
-  dplyr::select(TSPID, param, beta, sd, a.cc, TRT) |>
+  dplyr::select(TSPID, param, beta, sd, a.cc, TRT, cluster) |>
   
   mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
          w = 1 / sd^2) |>
+  
+  # cluster factor
+  mutate(cluster = factor(cluster)) |>
   
   bind_cols(
     
@@ -273,7 +281,8 @@ cc.model.list <- list()
 # M1 - NULL
 cc.model.list[[1]] <- gam(
   
-  beta ~ cc2,
+  beta ~ s(cluster, bs = "re") + 
+    s(cc2, bs = "cr"),
   data = cc.data,
   family = "gaussian",
   method = "REML",
@@ -284,7 +293,8 @@ cc.model.list[[1]] <- gam(
 # M2 - FR
 cc.model.list[[2]] <- gam(
   
-  beta ~ te(cc2, a.cc, bs = "cr"),
+  beta ~ s(cluster, bs = "re") +
+    te(cc2, a.cc, bs = "cr"),
   data = cc.data,
   family = "gaussian",
   method = "REML",
@@ -295,7 +305,8 @@ cc.model.list[[2]] <- gam(
 # M3 - TRT
 cc.model.list[[3]] <- gam(
   
-  beta ~ s(cc2, by = TRT, bs = "cr"),
+  beta ~ s(cluster, bs = "re") +
+    s(cc2, by = TRT, bs = "cr"),
   data = cc.data,
   family = "gaussian",
   method = "REML",
@@ -306,7 +317,8 @@ cc.model.list[[3]] <- gam(
 # M4 - FR x TRT
 cc.model.list[[4]] <- gam(
   
-  beta ~ te(cc2, a.cc, by = TRT, bs = "cr"),
+  beta ~ s(cluster, bs = "re") +
+    te(cc2, a.cc, by = TRT, bs = "cr"),
   data = cc.data,
   family = "gaussian",
   method = "REML",
@@ -325,9 +337,9 @@ appraise(cc.model.list[[4]])
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
-saveRDS(models.stem[[4]], "model_results/fr_models/on_stem.rds")
-saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
-saveRDS(models.dDM[[4]], "model_results/fr_models/on_dDM.rds")
+saveRDS(models.stem[[2]], "model_results/fr_models/on_stem.rds")
+saveRDS(models.ch[[3]], "model_results/fr_models/on_ch.rds")
+saveRDS(models.dDM[[3]], "model_results/fr_models/on_dDM.rds")
 saveRDS(models.shdi[[2]], "model_results/fr_models/on_shdi.rds")
 
 saveRDS(cc.model.list[[4]], "model_results/fr_models/on_cc.rds")

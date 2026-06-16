@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 16 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -28,7 +28,6 @@ off.shdi <- readRDS("model_results/fr_models/off_shdi.rds")
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
 on.ch <- readRDS("model_results/fr_models/on_ch.rds")
 on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-on.dOM <- readRDS("model_results/fr_models/on_dOM.rds")
 on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
 on.shdi <- readRDS("model_results/fr_models/on_shdi.rds")
 
@@ -869,12 +868,11 @@ rss_pred_plot_1 <- function (
 
 # use function
 rss_pred_plot_1(off.vo, 4, "vo", "a.vo", "off")
-rss_pred_plot_1(off.dOM, 4, "dOM", "a.dOM", "off")
-rss_pred_plot_1(off.dDM, 3, "dDM", "a.dDM", "off")
+rss_pred_plot_1(off.dOM, 4, "dOM", "pOM", "off")
+rss_pred_plot_1(off.dDM, 3, "dDM", "pDM", "off")
 rss_pred_plot_1(off.shdi, 4, "shdi", "a.shdi", "off")
 
 rss_pred_plot_1(on.stem, 4, "stem", "a.stem", "on")
 rss_pred_plot_1(on.ch, 4, "ch", "a.ch", "on")
-rss_pred_plot_1(on.dOM, 2, "dOM", "a.dOM", "on")
-rss_pred_plot_1(on.dDM, 3, "dDM", "a.dDM", "on")
-rss_pred_plot_1(on.shdi, 2, "shdi", "a.shdi", "on")
+rss_pred_plot_1(on.dDM, 4, "dDM", "pDM", "on")
+rss_pred_plot_1(on.shdi, 2, "shdi", "shdi", "on")

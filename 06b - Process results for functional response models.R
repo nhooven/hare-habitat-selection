@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 04 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 11 Jun 2026
+# LAST MODIFIED: 16 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -204,8 +204,43 @@ off.fr.1 <- left_join(off.fr, hr.metrics)
 on.fr.1 <- left_join(on.fr, hr.metrics)
 
 # ______________________________________________________________________________
-# 6. Save to file ----
+# 6. Join in cluster identifiers ----
 # ______________________________________________________________________________
 
-saveRDS(off.fr.1, "data_for_model/off_fr.rds")
-saveRDS(on.fr.1, "data_for_model/on_fr.rds")
+cluster.off <- data.off |> 
+  
+  mutate(cluster = substr(site, 1, 1)) |>
+  
+  dplyr::select(track_season_post, MRID, cluster) |>
+  
+  rename(TSPID = track_season_post) |>
+  
+  group_by(TSPID) |>
+  
+  slice(1) |>
+  
+  ungroup()
+
+cluster.on <- data.on |> 
+  
+  mutate(cluster = substr(site, 1, 1)) |>
+  
+  dplyr::select(track_season_post, MRID, cluster) |>
+  
+  rename(TSPID = track_season_post) |>
+  
+  group_by(TSPID) |>
+  
+  slice(1) |>
+  
+  ungroup()
+
+off.fr.2 <- left_join(off.fr.1, cluster.off)
+on.fr.2 <- left_join(on.fr.1, cluster.on)
+
+# ______________________________________________________________________________
+# 7. Save to file ----
+# ______________________________________________________________________________
+
+saveRDS(off.fr.2, "data_for_model/off_fr.rds")
+saveRDS(on.fr.2, "data_for_model/on_fr.rds")
