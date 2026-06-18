@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 11 Jun 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 16 Jun 2026
+# LAST MODIFIED: 17 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -76,23 +76,26 @@ sample_hr_metrics <- function (x) {
   # crop and mask
   rast.mask <- mask(crop(rast.focal, vect(focal.contour)), vect(focal.contour))
   
-  # calculate PLAND and SHDI
-  pland <- lsm_c_pland(rast.mask)
-  shdi <- lsm_l_shdi(rast.mask)
+  # reclassify
+  rast.mask <- classify(rast.mask,
+                        matrix(c(1, 1,
+                                 2, 1, 
+                                 3, 1, 
+                                 4, 2, 
+                                 5, 2, 
+                                 6, 2,
+                                 7, 2, 
+                                 8, 1,
+                                 9, 1),
+                               nrow = 9,
+                               byrow = T))
   
-  # account for zeroes (9 doesn't matter here)
-  p.OM4 <- ifelse(4 %in% pland$class, pland$value[pland$class == 4], 0)
-  p.JsM <- ifelse(5 %in% pland$class, pland$value[pland$class == 5], 0)
-  p.OM <- p.OM4 + p.JsM
-  p.MsM <- ifelse(6 %in% pland$class, pland$value[pland$class == 6], 0)
-  p.GM <- ifelse(7 %in% pland$class, pland$value[pland$class == 7], 0)
-  p.DM <- p.MsM + p.GM
+  # calculate PLAND and SHDI
+  ed <- lsm_l_ed(rast.mask)
   
   # pack into df
   focal.metrics <- data.frame(TSPID = x$TSPID,
-                              pOM = p.OM,
-                              pDM = p.DM,
-                              shdi = shdi$value)
+                              ed = ed$value)
   
   return(focal.metrics)
   

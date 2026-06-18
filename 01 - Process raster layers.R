@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 09 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -28,8 +28,7 @@ rast.cover.pre <- rast(paste0(dir.rast, "cover_type/cover_type_pre.tif"))
 rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # distance 
-rast.dOM <- rast(paste0(dir.rast, "dist_rasters/dOM_new.tif"))
-rast.dDM <- rast(paste0(dir.rast, "dist_rasters/dDM.tif"))
+rast.dEdge <- rast(paste0(dir.rast, "dist_rasters/dEdge.tif"))
 
 # vegetation models
 rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_stem.tif"))
@@ -97,20 +96,29 @@ canopy.post <- merge(
   
 )
 
-# merge and project
-# pre
-rast.ch.pre <- merge(canopy.pre$ch, canopy.2016$ch) |> project(rast.cover.pre)
-rast.cc.pre <- merge(canopy.pre$cc, canopy.2016$cc) |> project(rast.cover.pre)
+# ______________________________________________________________________________
+# 3a. Canopy cover ----
+# ______________________________________________________________________________
 
-# post
-rast.ch.post <- merge(canopy.post$ch, canopy.2016$ch) |> project(rast.cover.post)
+# merge and project
+rast.cc.pre <- merge(canopy.pre$cc, canopy.2016$cc) |> project(rast.cover.pre)
 rast.cc.post <- merge(canopy.post$cc, canopy.2016$cc) |> project(rast.cover.post)
 
 # fill in blanks (between lidar tiles)
-rast.ch.pre <- focal(rast.ch.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
 rast.cc.pre <- focal(rast.cc.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
-rast.ch.post <- focal(rast.ch.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
 rast.cc.post <- focal(rast.cc.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
+
+# ______________________________________________________________________________
+# 3b. Canopy height ----
+# ______________________________________________________________________________
+
+# merge and project
+rast.ch.pre <- merge(canopy.pre$ch, canopy.2016$ch) |> project(rast.cover.pre)
+rast.ch.post <- merge(canopy.post$ch, canopy.2016$ch) |> project(rast.cover.post)
+
+# fill in blanks (between lidar tiles)
+rast.ch.pre <- focal(rast.ch.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
+rast.ch.post <- focal(rast.ch.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
 
 # clamp rast.ch.post to highest real quantile
 ch.post.quant <- quantile(values(rast.ch.post), na.rm = T, prob = 0.9999)
@@ -118,95 +126,26 @@ ch.post.quant <- quantile(values(rast.ch.post), na.rm = T, prob = 0.9999)
 rast.ch.post <- clamp(rast.ch.post, upper = ch.post.quant)
 
 # ______________________________________________________________________________
-# 4. Landscape metrics on cover types ----
-# ______________________________________________________________________________
-# 4a. Convert to factors ---
+# 4. Sample in buffers ----
 # ______________________________________________________________________________
 
-levels(rast.cover.pre) <- data.frame(
-  
-  id = 1:8,
-  type = c("stand initiation",
-           "doghair",
-           "wetland",
-           "open forest",
-           "jackstraw",
-           "spruce-fir",
-           "other mature",
-           "open")
-  
-)
+# mean VO
+#rast.vo100.pre <- focal(rast.vo.pre, w = 21, fun = mean, na.rm = T)
+#rast.vo100.post <- focal(rast.vo.post, w = 21, fun = mean, na.rm = T)
 
-levels(rast.cover.post) <- data.frame(
-  
-  id = 1:9,
-  type = c("stand initiation",
-           "doghair",
-           "wetland",
-           "open forest",
-           "jackstraw",
-           "spruce-fir",
-           "other mature",
-           "open",
-           "thinned doghair")
-  
-)
+# mean stem
+#rast.stem100.pre <- focal(rast.stem.pre, w = 21, fun = mean, na.rm = T)
+#rast.stem100.post <- focal(rast.stem.post, w = 21, fun = mean, na.rm = T)
 
-# hard edge density
-# mature forest vs all other classes (thus this won't change with treatment)
-#rast.cover.edge <- rast.cover.pre
+# mean CH
+#rast.ch100.pre <- focal(rast.ch.pre, w = 21, fun = mean, na.rm = T)
+#rast.ch100.post <- focal(rast.ch.post, w = 21, fun = mean, na.rm = T)
 
-#mat.reclass.edge <- matrix(c(1, 1,
-#                             2, 1,
-#                             3, 1,
-#                             4, 2,
-#                             5, 2,
-#                             6, 2,
-#                             7, 2,
-#                             8, 1),
-#                           nrow = 8,
-#                           byrow = T)
-
-#rast.cover.edge <- classify(rast.cover.edge, rcl = mat.reclass.edge)
-
-# ______________________________________________________________________________
-# 4b. Moving window calculations ---
-# ______________________________________________________________________________
-
-# define moving windows
-# these must be matrices with odd rows/cols
-# each pixel is 10 m
-#mw.50 <- matrix(1, nrow = 11, ncol = 11)
-#mw.100 <- matrix(1, nrow = 21, ncol = 21)
-
-# calculate metric(s) within moving windows
-# patch diversity
-#shdi.50.pre <- window_lsm(rast.cover.pre, window = mw.50, what = "lsm_l_shdi")
-#shdi.50.post <- window_lsm(rast.cover.post, window = mw.50, what = "lsm_l_shdi")
-#shdi.100.pre <- window_lsm(rast.cover.pre, window = mw.100, what = "lsm_l_shdi")
-#shdi.100.post <- window_lsm(rast.cover.post, window = mw.100, what = "lsm_l_shdi")
-
-# save to file
-#writeRaster(lsm.50.pre$layer_1$lsm_l_shdi, "data_raster/shdi_50_pre.tif", overwrite = T)
-#writeRaster(lsm.50.post$layer_1$lsm_l_shdi, "data_raster/shdi_50_post.tif", overwrite = T)
-#writeRaster(lsm.100.pre$layer_1$lsm_l_shdi, "data_raster/shdi_100_pre.tif", overwrite = T)
-#writeRaster(lsm.100.post$layer_1$lsm_l_shdi, "data_raster/shdi_100_post.tif", overwrite = T)
-
-# read
-#rast.shdi.50.pre <- rast("data_raster/shdi_50_pre.tif")
-#rast.shdi.50.post <- rast("data_raster/shdi_50_post.tif")
-rast.shdi.100.pre <- rast("data_raster/shdi_100_pre.tif")
-rast.shdi.100.post <- rast("data_raster/shdi_100_post.tif")
-
-# edge density (m/ha)
-# write to raster to calculate in Fragstats
-#writeRaster(rast.cover.edge, "data_raster/cover_edge.tif", overwrite = T)
-
-# read (100 m)
-rast.ed <- rast("data_raster/ed_100.tif")
+# edge density
+#rast.ed <- rast("data_raster/ed_100.tif")
 
 # replace -999 with NA
-rast.ed <- subst(rast.ed, -999, NA)
+#rast.ed <- subst(rast.ed, -999, NA)
 
 # ______________________________________________________________________________
 # 5. Closest unit raster ----
@@ -275,39 +214,28 @@ ext(rast.cover.pre)
 
 rast.all <- c(
   
-  # landscape
-  resample(rast.dOM, rast.cover.pre),
-  resample(rast.dDM, rast.cover.pre),
-  resample(rast.ed, rast.cover.pre),
-  resample(rast.shdi.100.pre, rast.cover.pre),
-  resample(rast.shdi.100.post, rast.cover.pre),
-  
-  # canopy
-  resample(rast.ch.pre, rast.cover.pre),
-  resample(rast.ch.post, rast.cover.pre),
+  # conditions
   resample(rast.cc.pre, rast.cover.pre),
   resample(rast.cc.post, rast.cover.pre),
+  resample(rast.twi, rast.cover.pre),
+  resample(rast.vrm, rast.cover.pre),
   
-  # veg models
+  # structure 
   resample(rast.stem.pre, rast.cover.pre),
   resample(rast.stem.post, rast.cover.pre),
   resample(rast.vo.pre, rast.cover.pre),
   resample(rast.vo.post, rast.cover.pre),
-  
-  # topography
-  resample(rast.twi, rast.cover.pre),
-  resample(rast.vrm, rast.cover.pre)
+  resample(rast.ch.pre, rast.cover.pre),
+  resample(rast.ch.post, rast.cover.pre),
+  resample(rast.dEdge, rast.cover.pre)
   
 )
 
 # change names
 names(rast.all) <- c(
   
-  "dOM", "dDM", "ed",
-  "shdi.pre", "shdi.post",
-  "ch.pre", "ch.post", "cc.pre", "cc.post",
-  "stem.pre", "stem.post", "vo.pre", "vo.post",
-  "twi", "vrm"
+  "cc.pre", "cc.post", "twi", "vrm",
+  "stem.pre", "stem.post", "vo.pre", "vo.post", "ch.pre", "ch.post", "dEdge"
   
   )
 

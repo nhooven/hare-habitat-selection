@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 04 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 16 Jun 2026
+# COMPLETED: 18 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -41,7 +41,7 @@ join_slopes <- function (.slopes, .sds, .season) {
   slopes.joined <- .slopes |> 
     
     # pivot slopes
-    pivot_longer(cols = vo:ed) |>
+    pivot_longer(cols = cc:dEdge) |>
     
     rename(param = name,
            beta = value) |>
@@ -51,7 +51,7 @@ join_slopes <- function (.slopes, .sds, .season) {
       
       .sds |> 
         
-        pivot_longer(cols = vo:ed) |>
+        pivot_longer(cols = cc:dEdge) |>
         
         rename(param = name,
                sd = value)
@@ -64,7 +64,7 @@ join_slopes <- function (.slopes, .sds, .season) {
     slopes.joined <- .slopes |> 
       
       # pivot slopes
-      pivot_longer(cols = stem:ed) |>
+      pivot_longer(cols = cc:dEdge) |>
       
       rename(param = name,
              beta = value) |>
@@ -74,7 +74,7 @@ join_slopes <- function (.slopes, .sds, .season) {
         
         .sds |> 
           
-          pivot_longer(cols = stem:ed) |>
+          pivot_longer(cols = cc:dEdge) |>
           
           rename(param = name,
                  sd = value)
@@ -106,37 +106,17 @@ calc_fr <- function (.data) {
     # attribute correct values
     mutate(
       
-      # CH
-      ch = case_when(
-        
-        year == "PRE" ~ ch.pre,
-        year %in% c("POST1", "POST2") ~ ch.post
-        
-      ),
+      # CONDITIONS
+      cc = case_when(year == "PRE" ~ cc.pre,
+                     year %in% c("POST1", "POST2") ~ cc.post),
       
-      # CC
-      cc = case_when(
-        
-        year == "PRE" ~ cc.pre,
-        year %in% c("POST1", "POST2") ~ cc.post
-        
-      ),
-      
-      # VO
-      vo = case_when(
-        
-        year == "PRE" ~ vo.pre,
-        year %in% c("POST1", "POST2") ~ vo.post
-        
-      ),
-      
-      # stem
-      stem = case_when(
-        
-        year == "PRE" ~ stem.pre,
-        year %in% c("POST1", "POST2") ~ stem.post
-        
-      )
+      # LOCAL
+      stem = case_when(year == "PRE" ~ stem.pre,
+                       year %in% c("POST1", "POST2") ~ stem.post),
+      vo = case_when(year == "PRE" ~ vo.pre,
+                     year %in% c("POST1", "POST2") ~ vo.post),
+      ch = case_when(year == "PRE" ~ ch.pre,
+                     year %in% c("POST1", "POST2") ~ ch.post)
       
     ) |>
     
@@ -144,11 +124,7 @@ calc_fr <- function (.data) {
     
     summarize(a.vo = mean(vo),
               a.stem = mean(stem),
-              a.ch = mean(ch),
-              a.cc = mean(cc),
-              a.dOM = mean(dOM),
-              a.dDM = mean(dDM),
-              a.ed = mean(ed)) |>
+              a.ch = mean(ch)) |>
     
     rename(TSPID = track_season_post)
   

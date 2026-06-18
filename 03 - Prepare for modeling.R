@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 09 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -33,45 +33,17 @@ prep_1 <- function (x) {
     # attribute correct values
     mutate(
       
-      # CH
-      ch = case_when(
-        
-        year == "PRE" ~ ch.pre,
-        year %in% c("POST1", "POST2") ~ ch.post
-        
-      ),
+      # CONDITIONS
+      cc = case_when(year == "PRE" ~ cc.pre,
+                     year %in% c("POST1", "POST2") ~ cc.post),
       
-      # CC
-      cc = case_when(
-        
-        year == "PRE" ~ cc.pre,
-        year %in% c("POST1", "POST2") ~ cc.post
-        
-      ),
-      
-      # VO
-      vo = case_when(
-        
-        year == "PRE" ~ vo.pre,
-        year %in% c("POST1", "POST2") ~ vo.post
-        
-      ),
-      
-      # stem
-      stem = case_when(
-        
-        year == "PRE" ~ stem.pre,
-        year %in% c("POST1", "POST2") ~ stem.post
-        
-      ),
-      
-      # shdi
-      shdi = case_when(
-        
-        year == "PRE" ~ shdi.pre,
-        year %in% c("POST1", "POST2") ~ shdi.post
-        
-      )
+      # LOCAL
+      stem = case_when(year == "PRE" ~ stem.pre,
+                       year %in% c("POST1", "POST2") ~ stem.post),
+      vo = case_when(year == "PRE" ~ vo.pre,
+                     year %in% c("POST1", "POST2") ~ vo.post),
+      ch = case_when(year == "PRE" ~ ch.pre,
+                     year %in% c("POST1", "POST2") ~ ch.post)
       
     ) |>
     
@@ -80,36 +52,20 @@ prep_1 <- function (x) {
       
       -c(trt,
          season,
-         ch.pre,
-         ch.post,
          cc.pre,
          cc.post,
+         stem.pre,
+         stem.post,
          vo.pre,
          vo.post,
-         shdi.pre,
-         shdi.post)
+         ch.pre,
+         ch.post)
       
     ) |>
     
     # drop NAs
-    drop_na(
-      
-      c(
-        
-        dOM,
-        dDM,
-        shdi,
-        ch,
-        cc,
-        ed,
-        vo,
-        stem,
-        twi,
-        vrm
-        
-      )
-      
-    ) |>
+    drop_na(c(cc, twi, vrm,
+              stem, vo, ch, dEdge)) |>
     
     # case weights
     mutate(w = ifelse(case == 0, 5000, 1)) |>
@@ -126,17 +82,11 @@ prep_1 <- function (x) {
       # predictors
       akde,
       
-      # landscape covariates
-      vo,
-      stem,
-      ch,
-      cc,
-      twi,
-      vrm,
-      dOM,
-      dDM,
-      ed,
-      shdi
+      # CONDITIONS
+      cc, twi, vrm,
+      
+      # LOCAL
+      stem, vo, ch, dEdge
       
     )
   
@@ -155,8 +105,8 @@ data.on.1 <- prep_1(data.on)
 data.off.attr <- data.off.1 |> dplyr::select(track_season_post:akde)
 data.on.attr <- data.on.1 |> dplyr::select(track_season_post:akde)
 
-data.off.cov <- data.off.1 |> dplyr::select(vo:shdi)
-data.on.cov <- data.on.1 |> dplyr::select(vo:shdi)
+data.off.cov <- data.off.1 |> dplyr::select(cc:dEdge)
+data.on.cov <- data.on.1 |> dplyr::select(cc:dEdge)
 
 # ______________________________________________________________________________
 # 6. Transformations ----
@@ -168,13 +118,9 @@ transform_covs <- function (x) {
     
     # covariate transformations
     # squared
-    mutate(
-      
-      cc2 = cc^2,
-      twi2 = twi^2,
-      vrm2 = vrm^2
-      
-    ) 
+    mutate(cc2 = cc^2,
+           twi2 = twi^2,
+           vrm2 = vrm^2)
   
   return(x.1)
   
@@ -229,7 +175,7 @@ mean_sds_trt <- function (x, y) {
     
     dplyr::select(-c(year, c.trt)) |>
     
-    pivot_longer(cols = vo:vrm2) |>
+    pivot_longer(cols = cc:vrm2) |>
     
     group_by(name, TRT) |>
     

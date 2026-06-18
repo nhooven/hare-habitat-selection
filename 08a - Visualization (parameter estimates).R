@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 15 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -34,16 +34,14 @@ levels.on <- M.on[[1]]$param
 
 # labels
 labels.off <- c("log(G[s])", 
-                "visual obstruction", "canopy height", 
                 "canopy cover", "canopy cover2",
                 "wetness", "wetness2", "ruggedness", "ruggedness2",
-                "dOpen", "dDense", "edge density", "patch diversity")
+                "visual obstruction", "canopy height", "distance to edge")
 
 labels.on <- c("log(G[s])", 
-                "stem density", "canopy height", 
-                "canopy cover", "canopy cover2",
-                "wetness", "wetness2", "ruggedness", "ruggedness2",
-                "dOpen", "dDense", "edge density", "patch diversity")
+               "canopy cover", "canopy cover2",
+               "wetness", "wetness2", "ruggedness", "ruggedness2",
+               "stem density", "canopy height", "distance to edge")
 
 # ______________________________________________________________________________
 # 3b. Function ----
@@ -70,8 +68,6 @@ on.pop <- apply_cov_labels(M.on[[1]], levels.on, labels.on)
 # use on random slope variances
 off.rs.var <- apply_cov_labels(M.off[[2]], levels.off, labels.off)
 on.rs.var <- apply_cov_labels(M.on[[2]], levels.on, labels.on)
-
-# add variable class?
 
 # ______________________________________________________________________________
 # 4. Population-level effect plot ----
@@ -169,16 +165,13 @@ both.pop <- bind_rows(
       param %in% c("visual obstruction",
                    "stem density",
                    "canopy height",
-                   "canopy cover",
-                   "canopy cover2") ~ "stand",
-      param %in% c("dOpen",
-                   "dDense",
-                   "edge density",
-                   "patch diversity") ~ "landscape",
-      param %in% c("wetness",
+                   "distance to edge") ~ "focal",
+      param %in% c("canopy cover",
+                   "canopy cover2",
+                   "wetness",
                    "wetness2",
                    "ruggedness",
-                   "ruggedness2") ~ "topography"
+                   "ruggedness2") ~ "conditions"
       
     )
     
@@ -187,41 +180,35 @@ both.pop <- bind_rows(
   # factor order
   mutate(
     
-    param = factor(param, levels = c("visual obstruction",
-                                     "stem density",
-                                     "canopy height",
-                                     "canopy cover",
+    param = factor(param, levels = c("canopy cover",
                                      "canopy cover2",
-                                     "dOpen",
-                                     "dDense",
-                                     "edge density",
-                                     "patch diversity",
                                      "wetness",
                                      "wetness2",
                                      "ruggedness",
-                                     "ruggedness2"),
-                   labels = c("visual obstruction",
-                              "stem density",
-                              "canopy height",
-                              "canopy cover",
+                                     "ruggedness2",
+                                     "visual obstruction",
+                                     "stem density",
+                                     "canopy height",
+                                     "distance to edge"),
+                   labels = c("canopy cover",
                               "canopy cover (sq)",
-                              "dOpen",
-                              "dDense",
-                              "edge density",
-                              "patch diversity",
                               "wetness",
                               "wetness (sq)",
                               "ruggedness",
-                              "ruggedness (sq)")),
+                              "ruggedness (sq)",
+                              "visual obstruction",
+                              "stem density",
+                              "canopy height",
+                              "distance to edge")),
     
-    group = factor(group, levels = c("stand", "landscape", "topography"))
+    group = factor(group, levels = c("focal", "conditions"))
     
   )
 
 # random slopes
 both.rs <- bind_rows(
   
-  M.off[[3]] |> pivot_longer(cols = vo:shdi) |>
+  M.off[[3]] |> pivot_longer(cols = cc:dEdge) |>
     
     rename(param = name, mean = value) |>
     
@@ -229,7 +216,7 @@ both.rs <- bind_rows(
     
     apply_cov_labels(levels.off, labels.off),
   
-  M.on[[3]] |> pivot_longer(cols = stem:shdi) |>
+  M.on[[3]] |> pivot_longer(cols = cc:dEdge) |>
     
     rename(param = name, mean = value) |>
     
@@ -247,19 +234,16 @@ both.rs <- bind_rows(
     
     group = case_when(
       
+      param %in% c("canopy cover",
+                   "canopy cover2",
+                   "wetness",
+                   "wetness2",
+                   "ruggedness",
+                   "ruggedness2") ~ "conditions",
       param %in% c("visual obstruction",
                    "stem density",
                    "canopy height",
-                   "canopy cover",
-                   "canopy cover2") ~ "stand",
-      param %in% c("dOpen",
-                   "dDense",
-                   "edge density",
-                   "patch diversity") ~ "landscape",
-      param %in% c("wetness",
-                   "wetness2",
-                   "ruggedness",
-                   "ruggedness2") ~ "topography"
+                   "distance to edge") ~ "focal"
       
     )
     
@@ -268,34 +252,28 @@ both.rs <- bind_rows(
   # factor order
   mutate(
     
-    param = factor(param, levels = c("visual obstruction",
-                                     "stem density",
-                                     "canopy height",
-                                     "canopy cover",
+    param = factor(param, levels = c("canopy cover",
                                      "canopy cover2",
-                                     "dOpen",
-                                     "dDense",
-                                     "edge density",
-                                     "patch diversity",
                                      "wetness",
                                      "wetness2",
                                      "ruggedness",
-                                     "ruggedness2"),
-                   labels = c("visual obstruction",
-                              "stem density",
-                              "canopy height",
-                              "canopy cover",
+                                     "ruggedness2",
+                                     "visual obstruction",
+                                     "stem density",
+                                     "canopy height",
+                                     "distance to edge"),
+                   labels = c("canopy cover",
                               "canopy cover (sq)",
-                              "dOpen",
-                              "dDense",
-                              "edge density",
-                              "patch diversity",
                               "wetness",
                               "wetness (sq)",
                               "ruggedness",
-                              "ruggedness (sq)")),
+                              "ruggedness (sq)",
+                              "visual obstruction",
+                              "stem density",
+                              "canopy height",
+                              "distance to edge")),
     
-    group = factor(group, levels = c("stand", "landscape", "topography"))
+    group = factor(group, levels = c("focal", "conditions"))
     
   )
 
@@ -309,7 +287,7 @@ ggplot() +
   
   facet_wrap(~ group,
              scales = "free_y",
-             nrow = 3,
+             nrow = 2,
              strip.position = "right",
              space = "free_y") +      # ggplot says I can't use this, but it works anyway
   

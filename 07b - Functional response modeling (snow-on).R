@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 16 Jun 2026
+# COMPLETED: 18 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -22,23 +22,10 @@ library(gratia)
 fr.data <- readRDS("data_for_model/on_fr.rds")
 
 # ______________________________________________________________________________
-# 3. Examine availability distributions ----
-# ______________________________________________________________________________
-
-tsp.data <- fr.data |> group_by(TSPID) |> slice(1) 
-
-hist(tsp.data$a.stem)
-hist(tsp.data$a.ch)
-hist(tsp.data$a.cc)
-hist(tsp.data$pOM)   
-hist(tsp.data$pDM)    # the majority of HRs don't contain any DM
-hist(tsp.data$a.ed)
-
-# ______________________________________________________________________________
 # 3. Function - Fit models ----
 # ______________________________________________________________________________
 
-fr_model <- function (.param, .avail, .smooth = "cr") {
+fr_model <- function (.param, .avail, .smooth = "cs", .k = 10) {
   
   # clean data
   focal.data <- fr.data |> 
@@ -47,11 +34,10 @@ fr_model <- function (.param, .avail, .smooth = "cr") {
     
     rename("avail" = .avail) |>
     
-    mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
-           w = 1 / sd^2) |>
-    
-    # cluster factor
-    mutate(cluster = factor(cluster))
+    # factors and weights
+    mutate(cluster = factor(cluster),
+           TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
+           w = 1 / sd^2)
   
   # initialize model list
   model.list <- list()
@@ -72,7 +58,7 @@ fr_model <- function (.param, .avail, .smooth = "cr") {
   model.list[[2]] <- gam(
     
     beta ~ s(cluster, bs = "re") +
-      s(avail, k = 5, m = 1, bs = .smooth),
+      s(avail, k = .k, bs = .smooth),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -83,7 +69,7 @@ fr_model <- function (.param, .avail, .smooth = "cr") {
   # M3 - TRT
   model.list[[3]] <- gam(
     
-    beta ~ s(cluster, bs = "re") + TRT,
+    beta ~ TRT + s(cluster, bs = "re"),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -95,7 +81,7 @@ fr_model <- function (.param, .avail, .smooth = "cr") {
   model.list[[4]] <- gam(
     
     beta ~ s(cluster, bs = "re") +
-      s(avail, k = 5, m = 1, by = TRT, bs = .smooth),
+      s(avail, k = .k, by = TRT, bs = .smooth),
     data = focal.data,
     family = "gaussian",
     method = "REML",
@@ -173,173 +159,29 @@ appraise(models.stem[[2]])
 # 5b. CH ----
 # ______________________________________________________________________________
 
-models.ch <- fr_model("ch", "a.ch")
+models.ch <- fr_model("ch", "a.stem")
 
-aic_tab(models.ch)  # M4
+aic_tab(models.ch)  # M3
 
-summary(models.ch[[4]])
-plot(models.ch[[4]])
-appraise(models.ch[[4]])
-
-# ______________________________________________________________________________
-# 5c. dOM ----
-
-# weird outlier leading to a ridiculous relationship
-test <- fr.data |> filter(param == "dOM")
-
-plot(test$pOM, test$beta)
-
-# let's remove it for the model
-fr.data <- fr.data |> filter(beta < 2.5)
+summary(models.ch[[3]])
+appraise(models.ch[[3]])
 
 # ______________________________________________________________________________
-
-models.dOM <- fr_model("dOM", "pOM")
-
-aic_tab(models.dOM)  # M1
-
-summary(models.dOM[[1]])
-#plot(models.dOM[[2]])
-appraise(models.dOM[[1]])
-
-# ______________________________________________________________________________
-# 5e. dDM ----
+# 5c. dEdge ----
 # ______________________________________________________________________________
 
-models.dDM <- fr_model("dDM", "pDM")
+models.dEdge <- fr_model("dEdge", "a.stem")
 
-aic_tab(models.dDM)  # M4
+aic_tab(models.dEdge)  # M4
 
-summary(models.dDM[[4]])
-plot(models.dDM[[4]])
-appraise(models.dDM[[4]])
-
-# ______________________________________________________________________________
-# 5f. ed ----
-# ______________________________________________________________________________
-
-models.ed <- fr_model("ed", "a.ed")
-
-aic_tab(models.ed)  # M1
-
-summary(models.ed[[1]])
-#plot(models.ed[[1]])
-appraise(models.ed[[1]])
-
-# ______________________________________________________________________________
-# 5c. CC and CC2 ----
-
-# we need to think of these terms as part of the same parabola
-test <- fr.data |> filter(param %in% c("cc", "cc2")) |> 
-  
-  dplyr::select(TSPID, param, beta) |>
-  
-  pivot_wider(names_from = param,
-              values_from = beta)
-
-plot(test$cc, test$cc2)
-
-# STRONG correlation here
-# let's try a tensor product spline
-
-# visualize the correlation
-cc.spline <- gam(
-  
-  cc2 ~ s(cc, bs = "cr"),
-  data = test,
-  family = "gaussian",
-  method = "REML"
-  
-) |>
-  
-  plot()
-
-# ______________________________________________________________________________
-
-# clean data
-cc.data <- fr.data |> 
-  
-  filter(param == "cc") |>
-  
-  dplyr::select(TSPID, param, beta, sd, a.cc, TRT, cluster) |>
-  
-  mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
-         w = 1 / sd^2) |>
-  
-  # cluster factor
-  mutate(cluster = factor(cluster)) |>
-  
-  bind_cols(
-    
-    fr.data |> filter(param == "cc2") |> dplyr::select(beta) |> rename(cc2 = beta)
-    
-  )
-
-# initialize model list
-cc.model.list <- list()
-
-# models
-# M1 - NULL
-cc.model.list[[1]] <- gam(
-  
-  beta ~ s(cluster, bs = "re") + 
-    s(cc2, bs = "cr"),
-  data = cc.data,
-  family = "gaussian",
-  method = "REML",
-  weights = w
-  
-)
-
-# M2 - FR
-cc.model.list[[2]] <- gam(
-  
-  beta ~ s(cluster, bs = "re") +
-    te(cc2, a.cc, bs = "cr"),
-  data = cc.data,
-  family = "gaussian",
-  method = "REML",
-  weights = w
-  
-)
-
-# M3 - TRT
-cc.model.list[[3]] <- gam(
-  
-  beta ~ s(cluster, bs = "re") +
-    s(cc2, by = TRT, bs = "cr"),
-  data = cc.data,
-  family = "gaussian",
-  method = "REML",
-  weights = w
-  
-)
-
-# M4 - FR x TRT
-cc.model.list[[4]] <- gam(
-  
-  beta ~ s(cluster, bs = "re") +
-    te(cc2, a.cc, by = TRT, bs = "cr"),
-  data = cc.data,
-  family = "gaussian",
-  method = "REML",
-  weights = w
-  
-)
-
-# AIC table
-aic_tab(cc.model.list) # M4
-
-summary(cc.model.list[[4]])
-plot(cc.model.list[[4]])
-appraise(cc.model.list[[4]])
+summary(models.dEdge[[4]])
+plot(models.dEdge[[4]])
+appraise(models.dEdge[[4]])
 
 # ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.stem[[2]], "model_results/fr_models/on_stem.rds")
-saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
-saveRDS(models.dDM[[4]], "model_results/fr_models/on_dDM.rds")
-
-saveRDS(cc.model.list[[4]], "model_results/fr_models/on_cc.rds")
+saveRDS(models.ch[[3]], "model_results/fr_models/on_ch.rds")
+saveRDS(models.dEdge[[4]], "model_results/fr_models/on_dEdge.rds")

@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
-# COMPLETED: 
-# LAST MODIFIED: 16 Jun 2026
+# COMPLETED: 18 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -21,9 +21,9 @@ library(INLA)
 hs.data <- readRDS("data_for_model/off_data.rds")
 
 # residuals for log(AKDE)
-hs.data$g.s <- residuals(lm(log(akde) ~ vo + ch + cc + cc2 + 
-                               twi + twi2 + vrm + vrm2 + 
-                               dOM + dDM + ed,
+hs.data$g.s <- residuals(lm(log(akde) ~ 
+                              cc + cc2 + twi + twi2 + vrm + vrm2 + 
+                              vo + ch + dEdge,
                              data = hs.data))
 
 # ______________________________________________________________________________
@@ -65,13 +65,13 @@ calc_vif <- function (x) {
 
 # subset just the linear coefficients
 # assume squared terms will be highly correlated to their linear terms
-covs.lin <- hs.data |> dplyr::select(vo, ch, cc, twi, vrm, dOM, dDM, ed, g.s)
+covs.lin <- hs.data |> dplyr::select(g.s, cc, twi, vrm, vo, ch, dEdge)
 
 # correlation
-cor(covs.lin, method = "spearman") |> round(2)   # nothing over 0.55
+cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.40
 
 # VIF
-calc_vif(covs.lin)  # all < 2.1
+calc_vif(covs.lin)  # all < 2
 
 # ______________________________________________________________________________
 # 3. Setup ----
@@ -95,9 +95,7 @@ hs.data <- hs.data |>
     TSPID7 = TSPID,
     TSPID8 = TSPID,
     TSPID9 = TSPID,
-    TSPID10 = TSPID,
-    TSPID11 = TSPID,
-    TSPID12 = TSPID
+    TSPID10 = TSPID
     
   )
 
@@ -130,35 +128,26 @@ M.form <- case ~
   # population-level effects
   g.s +
   
-  # STAND
-  vo +
-  ch + 
-  cc + cc2 +
+  # CONDITIONS
+  cc + cc2 + twi + twi2 + vrm + vrm2 +
   
-  # TOPO
-  twi + twi2 + vrm + vrm2 +
-  
-  # LAND
-  dOM +
-  dDM + 
-  ed +
+  # STRUCTURE
+  vo + ch + dEdge +
   
   # random intercepts
   f(TSPID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
   
   # random slopes
   f(TSPID1, g.s, model = "iid", hyper = hyper.list) +
-  f(TSPID2, vo, model = "iid", hyper = hyper.list) +
-  f(TSPID3, ch, model = "iid", hyper = hyper.list) +
-  f(TSPID4, cc, model = "iid", hyper = hyper.list) + 
-  f(TSPID5, cc2, model = "iid", hyper = hyper.list) +
-  f(TSPID6, twi, model = "iid", hyper = hyper.list) +
-  f(TSPID7, twi2, model = "iid", hyper = hyper.list) +
-  f(TSPID8, vrm, model = "iid", hyper = hyper.list) +
-  f(TSPID9, vrm2, model = "iid", hyper = hyper.list) +
-  f(TSPID10, dOM, model = "iid", hyper = hyper.list) +
-  f(TSPID11, dDM, model = "iid", hyper = hyper.list) +
-  f(TSPID12, ed, model = "iid", hyper = hyper.list)
+  f(TSPID2, cc, model = "iid", hyper = hyper.list) +
+  f(TSPID3, cc2, model = "iid", hyper = hyper.list) +
+  f(TSPID4, twi, model = "iid", hyper = hyper.list) +
+  f(TSPID5, twi2, model = "iid", hyper = hyper.list) + 
+  f(TSPID6, vrm, model = "iid", hyper = hyper.list) +
+  f(TSPID7, vrm2, model = "iid", hyper = hyper.list) +
+  f(TSPID8, vo, model = "iid", hyper = hyper.list) +
+  f(TSPID9, ch, model = "iid", hyper = hyper.list) +
+  f(TSPID10, dEdge, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 5. Fit model ----

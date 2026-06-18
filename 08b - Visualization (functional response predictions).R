@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 16 Jun 2026
+# COMPLETED: 18 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -20,14 +20,12 @@ library(mgcv)
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.dOM <- readRDS("model_results/fr_models/off_dOM.rds")
-off.dDM <- readRDS("model_results/fr_models/off_dDM.rds")
+off.ch <- readRDS("model_results/fr_models/off_ch.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
 on.ch <- readRDS("model_results/fr_models/on_ch.rds")
-#on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
+on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # data
 off.data <- readRDS("data_for_model/off_fr.rds")
@@ -62,21 +60,11 @@ fr_pred_plot <- function (
   x.title <- case_when(
     
     .avail == "a.vo" ~ "Available visual obstruction (%)",
-    .avail == "a.stem" ~ "Available conifer stem density (stems/ha)",
-    .avail == "a.ch" ~ "Available canopy height (ft)",
-    .avail == "pOM" ~ "Available open mature (%)",
-    .avail == "pDM" ~ "Available dense mature (%)",
-    .avail == "a.ed" ~ "Available edge density (m/ha)",
-    .avail == "shdi" ~ "Available patch diversity"
+    .avail == "a.stem" ~ "Available stem density (stems/ha)"
     
   )
   
   # sequence of availability
-  seq.avail <- seq(min(data.1$avail, na.rm = T), 
-                   max(data.1$avail, na.rm = T), 
-                   length.out = 100)
-  
-  # quantiles instead?
   seq.avail <- seq(quantile(data.1$avail, prob = 0.05, na.rm = T), 
                    quantile(data.1$avail, prob = 0.95, na.rm = T), 
                    length.out = 100)
@@ -89,7 +77,8 @@ fr_pred_plot <- function (
     
     # predict
     pred <- predict(.model, new.data, se.fit = T, 
-                    exclude = "s(cluster)", newdata.guaranteed = TRUE)
+                    exclude = "s(cluster)", 
+                    newdata.guaranteed = TRUE)
     
     # predict.df
     pred.df <- cbind(new.data,
@@ -236,10 +225,8 @@ fr_pred_plot <- function (
 # ______________________________________________________________________________
 
 fr_pred_plot(off.vo, 4, "vo", "a.vo", "off") # ***
-fr_pred_plot(off.dOM, 3, "dOM", "pOM", "off") # ***
-fr_pred_plot(off.dDM, 3, "dDM", "pDM", "off") # ***
+fr_pred_plot(off.ch, 4, "ch", "a.vo", "off") 
 
 fr_pred_plot(on.stem, 2, "stem", "a.stem", "on")
-fr_pred_plot(on.ch, 4, "ch", "a.ch", "on")
-fr_pred_plot(on.dDM, 4, "dDM", "pDM", "on") # ***
-
+fr_pred_plot(on.ch, 3, "ch", "a.stem", "on") # *
+fr_pred_plot(on.dEdge, 4, "dEdge", "a.stem", "on")  # ***
