@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 15 Jun 2026
+# COMPLETED: 18 Jun 2026
+# LAST MODIFIED: 18 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -27,15 +27,12 @@ M.on <- readRDS("model_results/M_on.rds")
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.dOM <- readRDS("model_results/fr_models/off_dOM.rds")
-off.dDM <- readRDS("model_results/fr_models/off_dDM.rds")
-off.shdi <- readRDS("model_results/fr_models/off_shdi.rds")
+off.ch <- readRDS("model_results/fr_models/off_ch.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
 on.ch <- readRDS("model_results/fr_models/on_ch.rds")
-on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
+on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # means and SDs
 mean.sd.off <- readRDS("data_for_model/mean_sd_off.rds")
@@ -57,10 +54,6 @@ rast.all <- rast("data_raster/rast_all.tif")
 
 # raster directory
 dir.rast <- "D:/hare_project/data_spatial/Rasters/"
-
-# cover type
-rast.cover.pre <- rast(paste0(dir.rast, "cover_type/cover_type_pre.tif"))
-rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 
 # functions
 # standardize a raster layer function
@@ -87,20 +80,16 @@ prep_rast <- function (.site,
                        .year = "pre") {
   
   # which vars?
-  const.vars <- c("dOM", "dDM", "ed", "twi", "vrm")
+  const.vars <- c("dEdge", "twi", "vrm")
   
-  if (.season == "off" & .year == "pre") { which.vars <- c("vo.pre", "ch.pre", "cc.pre", "shdi.pre", const.vars) }
-  if (.season == "off" & .year == "post") { which.vars <- c("vo.post", "ch.post", "cc.post", "shdi.post", const.vars) }
-  if (.season == "on" & .year == "pre") { which.vars <- c("stem.pre", "ch.pre", "cc.pre", "shdi.pre", const.vars) }
-  if (.season == "on" & .year == "post") { which.vars <- c("stem.post", "ch.post", "cc.post", "shdi.post", const.vars) }
+  if (.season == "off" & .year == "pre") { which.vars <- c("vo.pre", "ch.pre", "cc.pre", const.vars) }
+  if (.season == "off" & .year == "post") { which.vars <- c("vo.post", "ch.post", "cc.post", const.vars) }
+  if (.season == "on" & .year == "pre") { which.vars <- c("stem.pre", "ch.pre", "cc.pre", const.vars) }
+  if (.season == "on" & .year == "post") { which.vars <- c("stem.post", "ch.post", "cc.post", const.vars) }
   
   # variable names
-  if (.season == "off") { var.names <- c("vo", "ch", "cc", "shdi", const.vars) }
-  if (.season == "on") { var.names <- c("stem", "ch", "cc", "shdi", const.vars) }
-  
-  # cover type
-  if (.year == "pre") { rast.cover <- rast.cover.pre }
-  if (.year == "post") { rast.cover <- rast.cover.post }
+  if (.season == "off") { var.names <- c("vo", "ch", "cc", const.vars) }
+  if (.season == "on") { var.names <- c("stem", "ch", "cc", const.vars) }
   
   # subset site
   focal.site <- units |> filter(name == .site)
@@ -114,7 +103,6 @@ prep_rast <- function (.site,
   
   # subset and crop rasts
   rast.crop <- rast.all |> subset(subset = which.vars) |> crop(vect(focal.bbox))
-  rast.cover <- rast.cover |> crop(vect(focal.bbox))
   
   # moving window analysis
   focal.mat <- focalMat(rast.crop, d = .radius, type = "circle") 
@@ -126,49 +114,6 @@ prep_rast <- function (.site,
   # names
   names(rast.avail) <- paste0("a.", var.names)
   names(rast.crop) <- var.names
-  
-  # proportion of DM and OM
-  # helper function
-  calc_prop <- function (x, .type = "DM") {
-    
-    if (.type == "DM") {
-    
-    sum(x %in% c(6, 7), na.rm = T) / sum(!is.na(x))
-    
-  } else if (.type == "OM") {
-      
-      sum(x %in% c(4, 5), na.rm = T) / sum(!is.na(x))
-      
-    }
-    
-  }
-  
-  # use
-  rast.pDM <- focal(rast.cover, 
-                    w = focal.mat, 
-                    fun = function (x) calc_prop(x, .type = "DM"), 
-                    na.policy = "omit")
-  
-  rast.pOM <- focal(rast.cover, 
-                    w = focal.mat, 
-                    fun = function (x) calc_prop(x, .type = "OM"), 
-                    na.policy = "omit")
-  
-  names(rast.pDM) <- "pDM"
-  names(rast.pOM) <- "pOM"
-  
-  # patch diversity
-  rast.shdi <- landscapemetrics::window_lsm(
-    
-    rast.cover,
-    window = focal.mat,
-    what = "lsm_l_shdi"
-    
-  )
-  
-  rast.shdi <- rast.shdi$layer_1$lsm_l_shdi
-  
-  names(rast.shdi) <- "pshdi"
   
   # standardize and bind together
   # AVAILABILITIES SHOULD NOT BE STANDARDIZED
@@ -191,28 +136,19 @@ prep_rast <- function (.site,
     stand_rast(rast.crop$ch, "ch", .season),
     stand_rast(rast.crop$cc, "cc", .season),
     stand_rast(rast.crop$cc^2, "cc2", .season),
-    stand_rast(rast.crop$dOM, "dOM", .season),
-    stand_rast(rast.crop$dDM, "dDM", .season),
-    stand_rast(rast.crop$ed, "ed", .season),
-    stand_rast(rast.crop$shdi, "shdi", .season),
+    stand_rast(rast.crop$dEdge, "dEdge", .season),
     stand_rast(rast.crop$twi, "twi", .season),
     stand_rast(rast.crop$twi^2, "twi2", .season),
     stand_rast(rast.crop$vrm, "vrm", .season),
     stand_rast(rast.crop$vrm^2, "vrm2", .season),
     
     # availabilities
-    rast.stand.a1,
-    rast.avail$a.ch,
-    rast.avail$a.cc,
-    rast.pOM,
-    rast.pDM,
-    rast.avail$a.ed,
-    rast.shdi
+    rast.stand.a1
     
   )
   
   # change names for squared terms
-  names(rast.stand)[c(4, 9, 11)] <- c("cc2", "twi2", "vrm2")
+  names(rast.stand)[c(4, 7, 9)] <- c("cc2", "twi2", "vrm2")
   
   # return
   return(rast.stand)
@@ -258,50 +194,49 @@ pred_hsf <- function (.site,
     # FR predictions + SEs
     # make rasters for prediction
     rast.vo <- subset(site.rast, c("a.vo", "TRT"))
-    rast.pOM <- subset(site.rast, c("pOM", "TRT"))
-    rast.pDM <- subset(site.rast, c("pDM", "TRT"))
-    rast.pshdi <- subset(site.rast, c("pshdi", "TRT"))
     
     # names
     names(rast.vo)[1] <- "avail"
-    names(rast.pOM)[1] <- "avail"
-    names(rast.pDM)[1] <- "avail"
-    names(rast.pshdi)[1] <- "avail"
     
     # FR predictions
-    beta.vo <- predict(object = rast.vo, model = off.vo, fun = predict.gam, na.omit = T)
-    beta.dOM <- predict(object = rast.pOM, model = off.dOM, fun = predict.gam, na.omit = T)
-    beta.dDM <- predict(object = rast.pDM, model = off.dDM, fun = predict.gam, na.omit = T)
-    beta.shdi <- predict(object = rast.pshdi, model = off.shdi, fun = predict.gam, na.omit = T)
+    beta.vo <- predict(object = rast.vo, 
+                       model = off.vo, 
+                       fun = predict.gam, 
+                       na.omit = T,
+                       exclude = "s(cluster)", 
+                       newdata.guaranteed = TRUE)
+    
+    beta.ch <- predict(object = rast.vo, 
+                       model = off.ch, 
+                       fun = predict.gam, 
+                       na.omit = T,
+                       exclude = "s(cluster)", 
+                       newdata.guaranteed = TRUE)
     
     # main coefs
-    beta.ch <- hsf$mean[hsf$param == "ch"]
     beta.cc <- hsf$mean[hsf$param == "cc"]
     beta.cc2 <- hsf$mean[hsf$param == "cc2"]
     beta.twi <- hsf$mean[hsf$param == "twi"]
     beta.twi2 <- hsf$mean[hsf$param == "twi2"]
     beta.vrm <- hsf$mean[hsf$param == "vrm"]
     beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
-    beta.ed <- hsf$mean[hsf$param == "ed"]
+    beta.dEdge <- hsf$mean[hsf$param == "dEdge"]
       
     # calculate log RSS prediction
     log.rss <- 
         
       # base
-      beta.ch * site.rast$ch +
       beta.cc * site.rast$cc +
       beta.cc2 * site.rast$cc2 +
       beta.twi * site.rast$twi +
       beta.twi2 * site.rast$twi2 +
       beta.vrm * site.rast$vrm +
       beta.vrm2 * site.rast$vrm2 +
-      beta.ed * site.rast$ed +
+      beta.dEdge * site.rast$dEdge +
       
       # functional responses
       beta.vo * site.rast$vo +
-      beta.dOM * site.rast$dOM +
-      beta.dDM * site.rast$dDM +
-      beta.shdi * site.rast$shdi
+      beta.ch * site.rast$ch
     
   } # season == "off"
   
@@ -313,26 +248,35 @@ pred_hsf <- function (.site,
     # FR predictions + SEs
     # make rasters for prediction
     rast.stem <- subset(site.rast, c("a.stem", "TRT"))
-    rast.ch <- subset(site.rast, c("a.ch", "TRT"))
-    rast.cc2 <- subset(site.rast, c("a.cc", "TRT"))
-    rast.pDM <- subset(site.rast, c("pDM", "TRT"))
     
     # names
     names(rast.stem)[1] <- "avail"
-    names(rast.ch)[1] <- "avail"
-    names(rast.cc2)[1] <- "avail"
-    names(rast.pDM)[1] <- "avail"
     
     # FR predictions
-    beta.stem <- predict(object = rast.stem, model = on.stem, fun = predict.gam)
-    beta.ch <- predict(object = rast.ch, model = on.ch, fun = predict.gam)
-    beta.cc2 <- predict(object = rast.cc2, model = on.cc2, fun = predict.gam)
-    beta.dDM <- predict(object = rast.pDM, model = on.dDM, fun = predict.gam)
+    beta.stem <- predict(object = rast.stem, 
+                         model = on.stem, 
+                         fun = predict.gam,
+                         na.omit = T,
+                         exclude = "s(cluster)", 
+                         newdata.guaranteed = TRUE)
+    
+    beta.ch <- predict(object = rast.stem, 
+                       model = on.ch, 
+                       fun = predict.gam,
+                       na.omit = T,
+                       exclude = "s(cluster)", 
+                       newdata.guaranteed = TRUE)
+    
+    beta.dEdge <- predict(object = rast.stem, 
+                          model = on.dEdge, 
+                          fun = predict.gam,
+                          na.omit = T,
+                          exclude = "s(cluster)", 
+                          newdata.guaranteed = TRUE)
     
     # main coefs
-    beta.dOM <- hsf$mean[hsf$param == "dOM"]
-    beta.ed <- hsf$mean[hsf$param == "ed"]
     beta.cc <- hsf$mean[hsf$param == "cc"]
+    beta.cc2 <- hsf$mean[hsf$param == "cc2"]
     beta.twi <- hsf$mean[hsf$param == "twi"]
     beta.twi2 <- hsf$mean[hsf$param == "twi2"]
     beta.vrm <- hsf$mean[hsf$param == "vrm"]
@@ -342,8 +286,8 @@ pred_hsf <- function (.site,
     log.rss <- 
         
       # base
-      beta.ed * site.rast$ed +
       beta.cc * site.rast$cc +
+      beta.cc2 * site.rast$cc2 +
       beta.twi * site.rast$twi +
       beta.twi2 * site.rast$twi2 +
       beta.vrm * site.rast$vrm +
@@ -352,9 +296,7 @@ pred_hsf <- function (.site,
       # functional responses
       beta.stem * site.rast$stem +
       beta.ch * site.rast$ch +
-      beta.cc2 * site.rast$cc2 +
-      beta.dOM * site.rast$dOM +
-      beta.dDM * site.rast$dDM
+      beta.dEdge * site.rast$dEdge
     
   } # season == "on"
   
@@ -727,18 +669,8 @@ map_hsf_change <- function (.rast1,
   focal.rast1 <- crop(.rast1, vect(focal.bbox))
   focal.rast2 <- crop(.rast2, vect(focal.bbox))
   
-  # difference
-  # if RSS
-  if (min(values(focal.rast2), na.rm = T) > 0) {
-    
-    focal.rast.diff <- log(focal.rast2 / focal.rast1)
-    
-    # if logRSS
-  } else {
-    
-    focal.rast.diff <- focal.rast2 - focal.rast1
-    
-  }
+  # difference - this will be the percent increase/decrease
+  focal.rast.diff <- (1 - (focal.rast1 / focal.rast2)) * 10
   
   # which function output these?
   if (nlyr(focal.rast1) == 2) {
@@ -775,9 +707,9 @@ map_hsf_change <- function (.rast1,
           axis.title = element_blank(),
           axis.text = element_blank(),
           axis.ticks = element_blank(),
-          legend.position = "right") +
+          legend.position = "top") +
     
-    scale_fill_gradient2(name = "logRSS change", 
+    scale_fill_gradient2(name = "% change", 
                          low = "#FF3300",
                          high = "purple",
                          midpoint = 0)
