@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 19 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -31,10 +31,10 @@ rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
 rast.dEdge <- rast(paste0(dir.rast, "dist_rasters/dEdge.tif"))
 
 # vegetation models
-rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_stem.tif"))
-rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/post_stem.tif"))
-rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/pre_vo.tif"))
-rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/post_vo.tif"))
+rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/stem_pre_new.tif"))
+rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/stem_post_new.tif"))
+rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/vo_pre_new.tif"))
+rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/vo_post_new.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
@@ -98,11 +98,25 @@ canopy.post <- merge(
 
 # ______________________________________________________________________________
 # 3a. Canopy cover ----
+
+# units 
+units <- st_read("D:/hare_project/data_spatial/Units/units_fixed_utm/units_fixed_utm.shp") |>
+  
+  dplyr::select(name, geometry) |>
+  
+  arrange(name) |>
+  
+  st_transform(crs(canopy.pre))
+
 # ______________________________________________________________________________
 
+# mask to unit boundaries
+canopy.pre.cc <- mask(crop(canopy.pre$cc, vect(units)), vect(units))
+canopy.post.cc <- mask(crop(canopy.post$cc, vect(units)), vect(units))
+
 # merge and project
-rast.cc.pre <- merge(canopy.pre$cc, canopy.2016$cc) |> project(rast.cover.pre)
-rast.cc.post <- merge(canopy.post$cc, canopy.2016$cc) |> project(rast.cover.post)
+rast.cc.pre <- merge(canopy.pre.cc, canopy.2016$cc) |> project(rast.cover.pre)
+rast.cc.post <- merge(canopy.post.cc, canopy.2016$cc) |> project(rast.cover.post)
 
 # fill in blanks (between lidar tiles)
 rast.cc.pre <- focal(rast.cc.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
@@ -112,9 +126,13 @@ rast.cc.post <- focal(rast.cc.post, w = 3, fun = mean, na.policy = "only", na.rm
 # 3b. Canopy height ----
 # ______________________________________________________________________________
 
+# mask to unit boundaries
+canopy.pre.ch <- mask(crop(canopy.pre$ch, vect(units)), vect(units))
+canopy.post.ch <- mask(crop(canopy.post$ch, vect(units)), vect(units))
+
 # merge and project
-rast.ch.pre <- merge(canopy.pre$ch, canopy.2016$ch) |> project(rast.cover.pre)
-rast.ch.post <- merge(canopy.post$ch, canopy.2016$ch) |> project(rast.cover.post)
+rast.ch.pre <- merge(canopy.pre.ch, canopy.2016$ch) |> project(rast.cover.pre)
+rast.ch.post <- merge(canopy.post.ch, canopy.2016$ch) |> project(rast.cover.post)
 
 # fill in blanks (between lidar tiles)
 rast.ch.pre <- focal(rast.ch.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)

@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 19 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -71,7 +71,7 @@ covs.lin <- hs.data |> dplyr::select(g.s, cc, twi, vrm, vo, ch, dEdge)
 cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.40
 
 # VIF
-calc_vif(covs.lin)  # all < 2
+calc_vif(covs.lin)  # all < 2.1
 
 # ______________________________________________________________________________
 # 3. Setup ----
