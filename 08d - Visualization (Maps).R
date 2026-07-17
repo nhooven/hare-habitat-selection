@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 29 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -27,7 +27,7 @@ M.on <- readRDS("model_results/M_on.rds")
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.ch <- readRDS("model_results/fr_models/off_ch.rds")
+off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
@@ -206,37 +206,33 @@ pred_hsf <- function (.site,
                        exclude = "s(cluster)", 
                        newdata.guaranteed = TRUE)
     
-    beta.ch <- predict(object = rast.vo, 
-                       model = off.ch, 
-                       fun = predict.gam, 
-                       na.omit = T,
-                       exclude = "s(cluster)", 
-                       newdata.guaranteed = TRUE)
+    beta.dEdge <- predict(object = rast.vo, 
+                          model = off.dEdge, 
+                          fun = predict.gam, 
+                          na.omit = T,
+                          exclude = "s(cluster)", 
+                          newdata.guaranteed = TRUE)
     
     # main coefs
-    beta.cc <- hsf$mean[hsf$param == "cc"]
-    beta.cc2 <- hsf$mean[hsf$param == "cc2"]
+    beta.ch <- hsf$mean[hsf$param == "ch"]
     beta.twi <- hsf$mean[hsf$param == "twi"]
     beta.twi2 <- hsf$mean[hsf$param == "twi2"]
     beta.vrm <- hsf$mean[hsf$param == "vrm"]
     beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
-    beta.dEdge <- hsf$mean[hsf$param == "dEdge"]
       
     # calculate log RSS prediction
     log.rss <- 
         
       # base
-      beta.cc * site.rast$cc +
-      beta.cc2 * site.rast$cc2 +
       beta.twi * site.rast$twi +
       beta.twi2 * site.rast$twi2 +
       beta.vrm * site.rast$vrm +
       beta.vrm2 * site.rast$vrm2 +
-      beta.dEdge * site.rast$dEdge +
+      beta.ch * site.rast$ch +
       
       # functional responses
       beta.vo * site.rast$vo +
-      beta.ch * site.rast$ch
+      beta.dEdge * site.rast$dEdge
     
   } # season == "off"
   
@@ -275,8 +271,6 @@ pred_hsf <- function (.site,
                           newdata.guaranteed = TRUE)
     
     # main coefs
-    beta.cc <- hsf$mean[hsf$param == "cc"]
-    beta.cc2 <- hsf$mean[hsf$param == "cc2"]
     beta.twi <- hsf$mean[hsf$param == "twi"]
     beta.twi2 <- hsf$mean[hsf$param == "twi2"]
     beta.vrm <- hsf$mean[hsf$param == "vrm"]
@@ -286,8 +280,6 @@ pred_hsf <- function (.site,
     log.rss <- 
         
       # base
-      beta.cc * site.rast$cc +
-      beta.cc2 * site.rast$cc2 +
       beta.twi * site.rast$twi +
       beta.twi2 * site.rast$twi2 +
       beta.vrm * site.rast$vrm +
@@ -305,7 +297,7 @@ pred_hsf <- function (.site,
   
   return(out.rast)
   
-}
+} # f()
 
 # ______________________________________________________________________________
 # 5b. Mean + SD ----

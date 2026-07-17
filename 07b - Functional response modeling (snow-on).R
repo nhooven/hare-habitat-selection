@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 17 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -155,16 +155,31 @@ summary(models.stem[[2]])
 plot(models.stem[[2]])
 appraise(models.stem[[2]])
 
+write.table(aic_tab(models.stem), "clipboard", sep = "\t")
+
 # ______________________________________________________________________________
 # 5b. CH ----
+
+# one outlier - remove
+test.ch <- fr.data |> filter(param == "ch")
+
+hist(test.ch$beta)
+
+which(fr.data$beta < -0.8 & fr.data$param == "ch")
+
+fr.data <- fr.data[-384, ]
+
 # ______________________________________________________________________________
 
 models.ch <- fr_model("ch", "a.stem")
 
-aic_tab(models.ch)  # M3
+aic_tab(models.ch)  # M4
 
-summary(models.ch[[3]])
-appraise(models.ch[[3]])
+summary(models.ch[[4]])
+plot(models.ch[[4]])
+appraise(models.ch[[4]])
+
+write.table(aic_tab(models.ch), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 5c. dEdge ----
@@ -178,10 +193,12 @@ summary(models.dEdge[[4]])
 plot(models.dEdge[[4]])
 appraise(models.dEdge[[4]])
 
+write.table(aic_tab(models.dEdge), "clipboard", sep = "\t")
+
 # ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
 saveRDS(models.stem[[2]], "model_results/fr_models/on_stem.rds")
-saveRDS(models.ch[[3]], "model_results/fr_models/on_ch.rds")
+saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
 saveRDS(models.dEdge[[4]], "model_results/fr_models/on_dEdge.rds")

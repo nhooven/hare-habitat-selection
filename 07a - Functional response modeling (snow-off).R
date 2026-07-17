@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 17 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -149,11 +149,13 @@ aic_tab <- function(.models) {
 
 models.vo <- fr_model("vo", "a.vo")
 
-aic_tab(models.vo)  # M4
+aic_tab(models.vo)  # M3
 
-summary(models.vo[[4]])
-plot(models.vo[[4]])
-appraise(models.vo[[4]])
+summary(models.vo[[3]])
+#plot(models.vo[[4]])
+appraise(models.vo[[3]])
+
+write.table(aic_tab(models.vo), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 5b. CH ----
@@ -163,9 +165,11 @@ models.ch <- fr_model("ch", "a.vo")
 
 aic_tab(models.ch)  # M1
 
-summary(models.ch[[4]])
-plot(models.ch[[4]])
-appraise(models.ch[[4]])
+summary(models.ch[[1]])
+#plot(models.ch[[4]])
+appraise(models.ch[[1]])
+
+write.table(aic_tab(models.ch), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 5c. dEdge ----
@@ -173,13 +177,17 @@ appraise(models.ch[[4]])
 
 models.dEdge <- fr_model("dEdge", "a.vo")
 
-aic_tab(models.dEdge)  # M1
+aic_tab(models.dEdge)  # M2
 
-summary(models.dEdge[[1]])
+summary(models.dEdge[[2]])
+plot(models.dEdge[[2]])
+appraise(models.dEdge[[2]])
+
+write.table(aic_tab(models.dEdge), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
-saveRDS(models.vo[[4]], "model_results/fr_models/off_vo.rds")
-saveRDS(models.ch[[4]], "model_results/fr_models/off_ch.rds")
+saveRDS(models.vo[[3]], "model_results/fr_models/off_vo.rds")
+saveRDS(models.dEdge[[2]], "model_results/fr_models/off_dEdge.rds")

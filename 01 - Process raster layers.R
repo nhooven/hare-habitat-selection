@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 19 Jun 2026
+# LAST MODIFIED: 17 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -35,6 +35,8 @@ rast.stem.pre <- rast(paste0(dir.rast, "veg_pred/RF/stem_pre_new.tif"))
 rast.stem.post <- rast(paste0(dir.rast, "veg_pred/RF/stem_post_new.tif"))
 rast.vo.pre <- rast(paste0(dir.rast, "veg_pred/RF/vo_pre_new.tif"))
 rast.vo.post <- rast(paste0(dir.rast, "veg_pred/RF/vo_post_new.tif"))
+rast.wsr.pre <- rast(paste0(dir.rast, "veg_pred/RF/wsr_pre_new.tif"))
+rast.wsr.post <- rast(paste0(dir.rast, "veg_pred/RF/wsr_post_new.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
@@ -106,12 +108,15 @@ units <- st_read("D:/hare_project/data_spatial/Units/units_fixed_utm/units_fixed
   
   arrange(name) |>
   
-  st_transform(crs(canopy.pre))
+  st_transform(crs(canopy.post))
 
 # ______________________________________________________________________________
 
 # mask to unit boundaries
-canopy.pre.cc <- mask(crop(canopy.pre$cc, vect(units)), vect(units))
+# 06-29-2026
+# these pre canopy cover metrics led to some highly incorrect values for some of the
+# units - let's use 2016 instead and admit some bias
+canopy.pre.cc <- mask(crop(canopy.2016$cc, vect(units)), vect(units))
 canopy.post.cc <- mask(crop(canopy.post$cc, vect(units)), vect(units))
 
 # merge and project
@@ -237,6 +242,8 @@ rast.all <- c(
   resample(rast.cc.post, rast.cover.pre),
   resample(rast.twi, rast.cover.pre),
   resample(rast.vrm, rast.cover.pre),
+  resample(rast.wsr.pre, rast.cover.pre),
+  resample(rast.wsr.post, rast.cover.pre),
   
   # structure 
   resample(rast.stem.pre, rast.cover.pre),
@@ -253,11 +260,12 @@ rast.all <- c(
 names(rast.all) <- c(
   
   "cc.pre", "cc.post", "twi", "vrm",
+  "wsr.pre", "wsr.post",
   "stem.pre", "stem.post", "vo.pre", "vo.post", "ch.pre", "ch.post", "dEdge"
   
   )
 
-plot(rast.all)
+terra::plot(rast.all)
 
 # ______________________________________________________________________________
 # 6. Write rasters ----

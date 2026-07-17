@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 17 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -22,6 +22,13 @@ library(cowplot)
 M.off <- readRDS("model_results/M_off.rds")
 M.on <- readRDS("model_results/M_on.rds")
 
+# copy for result table
+write.table(M.off[[1]], "clipboard", sep = "\t")
+write.table(M.off[[2]], "clipboard", sep = "\t")
+
+write.table(M.on[[1]], "clipboard", sep = "\t")
+write.table(M.on[[2]], "clipboard", sep = "\t")
+
 # ______________________________________________________________________________
 # 3. Re-order and rename factor levels ----
 # ______________________________________________________________________________
@@ -33,14 +40,10 @@ levels.off <- M.off[[1]]$param
 levels.on <- M.on[[1]]$param
 
 # labels
-labels.off <- c("log(G[s])", 
-                "canopy cover", "canopy cover2",
-                "wetness", "wetness2", "ruggedness", "ruggedness2",
+labels.off <- c("log(G[s])","wetness", "wetness2", "ruggedness", "ruggedness2",
                 "visual obstruction", "canopy height", "distance to edge")
 
-labels.on <- c("log(G[s])", 
-               "canopy cover", "canopy cover2",
-               "wetness", "wetness2", "ruggedness", "ruggedness2",
+labels.on <- c("log(G[s])","wetness", "wetness2", "ruggedness", "ruggedness2",
                "stem density", "canopy height", "distance to edge")
 
 # ______________________________________________________________________________
@@ -166,9 +169,7 @@ both.pop <- bind_rows(
                    "stem density",
                    "canopy height",
                    "distance to edge") ~ "focal",
-      param %in% c("canopy cover",
-                   "canopy cover2",
-                   "wetness",
+      param %in% c("wetness",
                    "wetness2",
                    "ruggedness",
                    "ruggedness2") ~ "conditions"
@@ -180,9 +181,7 @@ both.pop <- bind_rows(
   # factor order
   mutate(
     
-    param = factor(param, levels = c("canopy cover",
-                                     "canopy cover2",
-                                     "wetness",
+    param = factor(param, levels = c("wetness",
                                      "wetness2",
                                      "ruggedness",
                                      "ruggedness2",
@@ -190,9 +189,7 @@ both.pop <- bind_rows(
                                      "stem density",
                                      "canopy height",
                                      "distance to edge"),
-                   labels = c("canopy cover",
-                              "canopy cover (sq)",
-                              "wetness",
+                   labels = c("wetness",
                               "wetness (sq)",
                               "ruggedness",
                               "ruggedness (sq)",
@@ -208,7 +205,7 @@ both.pop <- bind_rows(
 # random slopes
 both.rs <- bind_rows(
   
-  M.off[[3]] |> pivot_longer(cols = cc:dEdge) |>
+  M.off[[3]] |> pivot_longer(cols = twi:dEdge) |>
     
     rename(param = name, mean = value) |>
     
@@ -216,7 +213,7 @@ both.rs <- bind_rows(
     
     apply_cov_labels(levels.off, labels.off),
   
-  M.on[[3]] |> pivot_longer(cols = cc:dEdge) |>
+  M.on[[3]] |> pivot_longer(cols = twi:dEdge) |>
     
     rename(param = name, mean = value) |>
     
@@ -234,9 +231,7 @@ both.rs <- bind_rows(
     
     group = case_when(
       
-      param %in% c("canopy cover",
-                   "canopy cover2",
-                   "wetness",
+      param %in% c("wetness",
                    "wetness2",
                    "ruggedness",
                    "ruggedness2") ~ "conditions",
@@ -252,9 +247,7 @@ both.rs <- bind_rows(
   # factor order
   mutate(
     
-    param = factor(param, levels = c("canopy cover",
-                                     "canopy cover2",
-                                     "wetness",
+    param = factor(param, levels = c("wetness",
                                      "wetness2",
                                      "ruggedness",
                                      "ruggedness2",
@@ -262,9 +255,7 @@ both.rs <- bind_rows(
                                      "stem density",
                                      "canopy height",
                                      "distance to edge"),
-                   labels = c("canopy cover",
-                              "canopy cover (sq)",
-                              "wetness",
+                   labels = c("wetness",
                               "wetness (sq)",
                               "ruggedness",
                               "ruggedness (sq)",
@@ -288,8 +279,7 @@ ggplot() +
   facet_wrap(~ group,
              scales = "free_y",
              nrow = 2,
-             strip.position = "right",
-             space = "free_y") +      # ggplot says I can't use this, but it works anyway
+             strip.position = "right") +      
   
   # vertical line
   geom_vline(xintercept = 0,
@@ -357,4 +347,4 @@ ggplot() +
   
   scale_y_discrete(limits = rev)
 
-# 465 x 481
+# 465 x 293

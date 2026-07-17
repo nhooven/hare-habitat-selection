@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 19 Jun 2026
+# LAST MODIFIED: 29 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -22,7 +22,7 @@ hs.data <- readRDS("data_for_model/off_data.rds")
 
 # residuals for log(AKDE)
 hs.data$g.s <- residuals(lm(log(akde) ~ 
-                              cc + cc2 + twi + twi2 + vrm + vrm2 + 
+                              twi + twi2 + vrm + vrm2 + 
                               vo + ch + dEdge,
                              data = hs.data))
 
@@ -65,13 +65,13 @@ calc_vif <- function (x) {
 
 # subset just the linear coefficients
 # assume squared terms will be highly correlated to their linear terms
-covs.lin <- hs.data |> dplyr::select(g.s, cc, twi, vrm, vo, ch, dEdge)
+covs.lin <- hs.data |> dplyr::select(g.s, twi, vrm, vo, ch, dEdge)
 
 # correlation
-cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.40
+cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.52
 
 # VIF
-calc_vif(covs.lin)  # all < 2.1
+calc_vif(covs.lin)  # all < 1.5
 
 # ______________________________________________________________________________
 # 3. Setup ----
@@ -93,9 +93,7 @@ hs.data <- hs.data |>
     TSPID5 = TSPID,
     TSPID6 = TSPID,
     TSPID7 = TSPID,
-    TSPID8 = TSPID,
-    TSPID9 = TSPID,
-    TSPID10 = TSPID
+    TSPID8 = TSPID
     
   )
 
@@ -129,7 +127,7 @@ M.form <- case ~
   g.s +
   
   # CONDITIONS
-  cc + cc2 + twi + twi2 + vrm + vrm2 +
+  twi + twi2 + vrm + vrm2 +
   
   # STRUCTURE
   vo + ch + dEdge +
@@ -139,15 +137,13 @@ M.form <- case ~
   
   # random slopes
   f(TSPID1, g.s, model = "iid", hyper = hyper.list) +
-  f(TSPID2, cc, model = "iid", hyper = hyper.list) +
-  f(TSPID3, cc2, model = "iid", hyper = hyper.list) +
-  f(TSPID4, twi, model = "iid", hyper = hyper.list) +
-  f(TSPID5, twi2, model = "iid", hyper = hyper.list) + 
-  f(TSPID6, vrm, model = "iid", hyper = hyper.list) +
-  f(TSPID7, vrm2, model = "iid", hyper = hyper.list) +
-  f(TSPID8, vo, model = "iid", hyper = hyper.list) +
-  f(TSPID9, ch, model = "iid", hyper = hyper.list) +
-  f(TSPID10, dEdge, model = "iid", hyper = hyper.list)
+  f(TSPID2, twi, model = "iid", hyper = hyper.list) +
+  f(TSPID3, twi2, model = "iid", hyper = hyper.list) + 
+  f(TSPID4, vrm, model = "iid", hyper = hyper.list) +
+  f(TSPID5, vrm2, model = "iid", hyper = hyper.list) +
+  f(TSPID6, vo, model = "iid", hyper = hyper.list) +
+  f(TSPID7, ch, model = "iid", hyper = hyper.list) +
+  f(TSPID8, dEdge, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 5. Fit model ----

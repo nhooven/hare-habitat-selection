@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 29 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -20,7 +20,7 @@ library(mgcv)
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.ch <- readRDS("model_results/fr_models/off_ch.rds")
+off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
 on.stem <- readRDS("model_results/fr_models/on_stem.rds")
@@ -410,9 +410,9 @@ rss_pred_plot <- function (
 }
 
 # use function
-rss_pred_plot(off.vo, 4, "vo", "a.vo", "off") # ***
-rss_pred_plot(off.ch, 4, "ch", "a.vo", "off")
+rss_pred_plot(off.vo, 3, "vo", "a.vo", "off") # ***
+rss_pred_plot(off.dEdge, 2, "dEdge", "a.vo", "off")
 
 rss_pred_plot(on.stem, 2, "stem", "a.stem", "on")
-rss_pred_plot(on.ch, 3, "ch", "a.stem", "on")
+rss_pred_plot(on.ch, 4, "ch", "a.stem", "on")
 rss_pred_plot(on.dEdge, 4, "dEdge", "a.stem", "on")

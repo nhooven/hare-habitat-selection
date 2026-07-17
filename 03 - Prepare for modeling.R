@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 19 Jun 2026
+# LAST MODIFIED: 17 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -36,6 +36,8 @@ prep_1 <- function (x) {
       # CONDITIONS
       cc = case_when(year == "PRE" ~ cc.pre,
                      year %in% c("POST1", "POST2") ~ cc.post),
+      wsr = case_when(year == "PRE" ~ wsr.pre,
+                      year %in% c("POST1", "POST2") ~ wsr.post),
       
       # LOCAL
       stem = case_when(year == "PRE" ~ stem.pre,
@@ -83,7 +85,7 @@ prep_1 <- function (x) {
       akde,
       
       # CONDITIONS
-      cc, twi, vrm,
+      cc, twi, vrm, wsr,
       
       # LOCAL
       stem, vo, ch, dEdge

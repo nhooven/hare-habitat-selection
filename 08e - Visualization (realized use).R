@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 18 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 18 Jun 2026
+# LAST MODIFIED: 29 Jun 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -65,8 +65,6 @@ calc_RIU <- function (.season) {
       
       mutate(w.x.pop = exp(
         
-        pop.est$mean[pop.est$param == "cc"] * cc +
-          pop.est$mean[pop.est$param == "cc2"] * cc2 +
           pop.est$mean[pop.est$param == "twi"] * twi +
           pop.est$mean[pop.est$param == "twi2"] * twi2 +
           pop.est$mean[pop.est$param == "vrm"] * vrm +
@@ -90,8 +88,6 @@ calc_RIU <- function (.season) {
         
         mutate(w.x.ind = exp(
         
-          ind.est.1$cc * cc +
-            ind.est.1$cc2 * cc2 +
             ind.est.1$twi * twi +
             ind.est.1$twi2 * twi2 +
             ind.est.1$vrm * vrm +
@@ -121,7 +117,7 @@ calc_RIU <- function (.season) {
       
       # keep only necessary columns
       dplyr::select(track_season_post,
-                    cc:w.x.ind)
+                    twi:w.x.ind)
     
     return(data.avail.1)
     
@@ -147,8 +143,6 @@ calc_RIU <- function (.season) {
       
       mutate(w.x.pop = exp(
         
-        pop.est$mean[pop.est$param == "cc"] * cc +
-          pop.est$mean[pop.est$param == "cc2"] * cc2 +
           pop.est$mean[pop.est$param == "twi"] * twi +
           pop.est$mean[pop.est$param == "twi2"] * twi2 +
           pop.est$mean[pop.est$param == "vrm"] * vrm +
@@ -172,8 +166,6 @@ calc_RIU <- function (.season) {
         
         mutate(w.x.ind = exp(
           
-          ind.est.1$cc * cc +
-            ind.est.1$cc2 * cc2 +
             ind.est.1$twi * twi +
             ind.est.1$twi2 * twi2 +
             ind.est.1$vrm * vrm +
@@ -203,7 +195,7 @@ calc_RIU <- function (.season) {
       
       # keep only necessary columns
       dplyr::select(track_season_post,
-                    cc:w.x.ind)
+                    twi:w.x.ind)
     
     return(data.avail.1)
     
@@ -244,7 +236,6 @@ process_RIU <- function (.RIU, .season) {
     
     mutate(
       
-      cc = (cc * .mean.sd$sd[.mean.sd$name == "cc"]) + .mean.sd$mean[.mean.sd$name == "cc"],,
       twi = (twi * .mean.sd$sd[.mean.sd$name == "twi"]) + .mean.sd$mean[.mean.sd$name == "twi"],
       vrm = (vrm * .mean.sd$sd[.mean.sd$name == "vrm"]) + .mean.sd$mean[.mean.sd$name == "vrm"],
       vo = (vo * .mean.sd$sd[.mean.sd$name == "vo"]) + .mean.sd$mean[.mean.sd$name == "vo"],
@@ -261,7 +252,7 @@ process_RIU <- function (.RIU, .season) {
     rename(TSPID = track_season_post) |>
     
     # keep columns we need
-    dplyr::select(TSPID, cc, twi, vrm, stem, vo, ch, dEdge, w.x.pop, w.x.ind)
+    dplyr::select(TSPID, twi, vrm, stem, vo, ch, dEdge, w.x.pop, w.x.ind)
   
   # add in identifiers
   .fr.1 <- .fr |>
@@ -305,7 +296,7 @@ all.means.trt <- bind_rows(
   mean.sd.off.trt |> 
     
     dplyr::select(name, mean, TRT) |> 
-    filter(name %in% c("cc", "ch", "dEdge", "stem", "twi", "vo", "vrm")) |>
+    filter(name %in% c("ch", "dEdge", "stem", "twi", "vo", "vrm")) |>
     pivot_wider(names_from = name, values_from = mean) |>
     mutate(season = "snow-off",
            TRT = factor(TRT,
@@ -315,7 +306,7 @@ all.means.trt <- bind_rows(
   mean.sd.on.trt |> 
     
     dplyr::select(name, mean, TRT) |> 
-    filter(name %in% c("cc", "ch", "dEdge", "stem", "twi", "vo", "vrm")) |>
+    filter(name %in% c("ch", "dEdge", "stem", "twi", "vo", "vrm")) |>
     pivot_wider(names_from = name, values_from = mean) |>
     mutate(season = "snow-on",
            TRT = factor(TRT,
@@ -325,64 +316,7 @@ all.means.trt <- bind_rows(
 )
 
 # ______________________________________________________________________________
-# 5a. Canopy cover ----
-# ______________________________________________________________________________
-
-ggplot(data = all.RIU) +
-  
-  theme_bw() +
-  
-  facet_grid(season ~ TRT) +
-  
-  # mean lines
-  geom_vline(data = all.means.trt,
-             aes(xintercept = cc),
-             linetype = "dashed") +
-  
-  # individual level effects
-  geom_smooth(aes(x = cc,
-                  y = w.x.ind,
-                  group = TSPID),
-              color = "gray",
-              se = F,
-              method = "gam",
-              linewidth = 0.1,
-              alpha = 0.05) +
-  
-  # population level effects
-  geom_smooth(aes(x = cc,
-                  y = w.x.pop,
-                  color = season,
-                  fill = season),
-              linewidth = 0.75,
-              alpha = 0.25,
-              method = "gam") +
-  
-  # theme arguments
-  theme(panel.grid = element_blank(),
-        legend.position = "none",
-        axis.text = element_text(color = "black"),
-        strip.background = element_rect(color = NA),
-        strip.text = element_text(hjust = 0)) +
-  
-  # axis titles
-  xlab("Canopy cover (%)") +
-  ylab("Realized intensity of use") +
-  
-  # colors
-  scale_color_manual(values = c("green4", "dodgerblue3")) +
-  scale_fill_manual(values = c("green4", "dodgerblue3")) +
-  
-  # axis scales
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
-                     labels = c(0, 25, 50, 75, 100)) +
-  
-  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
-  
-  coord_cartesian(ylim = c(0.22, 4.5))
-
-# ______________________________________________________________________________
-# 5b. Wetness ----
+# 5a. Wetness ----
 # ______________________________________________________________________________
 
 ggplot(data = all.RIU) +
@@ -435,7 +369,7 @@ ggplot(data = all.RIU) +
   coord_cartesian(ylim = c(0.22, 4.5))
 
 # ______________________________________________________________________________
-# 5c. Ruggedness ----
+# 5b. Ruggedness ----
 # ______________________________________________________________________________
 
 ggplot(data = all.RIU) +
@@ -491,7 +425,7 @@ ggplot(data = all.RIU) +
   coord_cartesian(ylim = c(0.22, 4.5))
 
 # ______________________________________________________________________________
-# 5d. Canopy height ----
+# 5c. Canopy height ----
 # ______________________________________________________________________________
 
 ggplot(data = all.RIU) +
@@ -545,7 +479,7 @@ ggplot(data = all.RIU) +
   coord_cartesian(ylim = c(0.22, 4.5))
 
 # ______________________________________________________________________________
-# 5e. Distance to edge ----
+# 5d. Distance to edge ----
 # ______________________________________________________________________________
 
 ggplot(data = all.RIU) +
@@ -599,7 +533,7 @@ ggplot(data = all.RIU) +
   coord_cartesian(ylim = c(0.22, 4.5))
 
 # ______________________________________________________________________________
-# 5f. Visual obstruction ----
+# 5e. Visual obstruction ----
 # ______________________________________________________________________________
 
 ggplot(data = all.RIU |> filter(season == "snow-off")) +
