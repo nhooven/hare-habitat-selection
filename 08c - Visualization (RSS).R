@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -20,11 +20,11 @@ library(mgcv)
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
+off.cc <- readRDS("model_results/fr_models/off_cc.rds")
 off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
-on.stem <- readRDS("model_results/fr_models/on_stem.rds")
-on.ch <- readRDS("model_results/fr_models/on_ch.rds")
+on.cc <- readRDS("model_results/fr_models/on_cc.rds")
 on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # data
@@ -77,7 +77,8 @@ rss_pred_plot <- function (
     .param == "vo" ~ "Visual obstruction (%)",
     .param == "stem" ~ "Conifer stem density (stems/ha)",
     .param == "ch" ~ "Canopy height (ft)",
-    .param == "dEdge" ~ "Distance from edge (m)"
+    .param == "dEdge" ~ "Distance from edge (m)",
+    .param == "cc" ~ "Canopy cover (%)"
     
   )
   
@@ -409,10 +410,16 @@ rss_pred_plot <- function (
   
 }
 
-# use function
-rss_pred_plot(off.vo, 3, "vo", "a.vo", "off") # ***
+# ______________________________________________________________________________
+# 3. Plots ----
+
+# 772 x 300
+
+# ______________________________________________________________________________
+
+rss_pred_plot(off.vo, 3, "vo", "a.vo", "off")
+rss_pred_plot(off.cc, 3, "cc", "a.vo", "off")
 rss_pred_plot(off.dEdge, 2, "dEdge", "a.vo", "off")
 
-rss_pred_plot(on.stem, 2, "stem", "a.stem", "on")
-rss_pred_plot(on.ch, 4, "ch", "a.stem", "on")
+rss_pred_plot(on.cc, 2, "cc", "a.stem", "on")
 rss_pred_plot(on.dEdge, 4, "dEdge", "a.stem", "on")

@@ -1,10 +1,10 @@
 # PROJECT: Habitat selection
-# SCRIPT: 08d - Visualization (Maps)
+# SCRIPT: 08d - Visualization (Basic maps)
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 08 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -27,11 +27,11 @@ M.on <- readRDS("model_results/M_on.rds")
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
+off.cc <- readRDS("model_results/fr_models/off_cc.rds")
 off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
-on.stem <- readRDS("model_results/fr_models/on_stem.rds")
-on.ch <- readRDS("model_results/fr_models/on_ch.rds")
+on.cc <- readRDS("model_results/fr_models/on_cc.rds")
 on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # means and SDs
@@ -135,7 +135,6 @@ prep_rast <- function (.site,
     rast.stand.1,
     stand_rast(rast.crop$ch, "ch", .season),
     stand_rast(rast.crop$cc, "cc", .season),
-    stand_rast(rast.crop$cc^2, "cc2", .season),
     stand_rast(rast.crop$dEdge, "dEdge", .season),
     stand_rast(rast.crop$twi, "twi", .season),
     stand_rast(rast.crop$twi^2, "twi2", .season),
@@ -148,7 +147,7 @@ prep_rast <- function (.site,
   )
   
   # change names for squared terms
-  names(rast.stand)[c(4, 7, 9)] <- c("cc2", "twi2", "vrm2")
+  names(rast.stand)[c(6, 8)] <- c("twi2", "vrm2")
   
   # return
   return(rast.stand)
@@ -182,9 +181,10 @@ pred_hsf <- function (.site,
     
   )
   
-  # add a TRT raster
+  # add a TRT and clust raster
   site.rast <- c(site.rast,
-                 rast(site.rast, nlyrs = 1, names = "TRT", vals = TRT))
+                 rast(site.rast, nlyrs = 1, names = "TRT", vals = TRT),
+                 rast(site.rast, nlyrs = 1, names = "cluster", vals = substr(.site, 1, 1)))
   
   if (.season == "off") {
     
@@ -193,7 +193,7 @@ pred_hsf <- function (.site,
     
     # FR predictions + SEs
     # make rasters for prediction
-    rast.vo <- subset(site.rast, c("a.vo", "TRT"))
+    rast.vo <- subset(site.rast, c("a.vo", "TRT", "cluster"))
     
     # names
     names(rast.vo)[1] <- "avail"
@@ -203,14 +203,18 @@ pred_hsf <- function (.site,
                        model = off.vo, 
                        fun = predict.gam, 
                        na.omit = T,
-                       exclude = "s(cluster)", 
+                       newdata.guaranteed = TRUE)
+    
+    beta.cc <- predict(object = rast.vo, 
+                       model = off.cc, 
+                       fun = predict.gam, 
+                       na.omit = T,
                        newdata.guaranteed = TRUE)
     
     beta.dEdge <- predict(object = rast.vo, 
                           model = off.dEdge, 
                           fun = predict.gam, 
                           na.omit = T,
-                          exclude = "s(cluster)", 
                           newdata.guaranteed = TRUE)
     
     # main coefs
@@ -232,6 +236,7 @@ pred_hsf <- function (.site,
       
       # functional responses
       beta.vo * site.rast$vo +
+      beta.cc * site.rast$cc +
       beta.dEdge * site.rast$dEdge
     
   } # season == "off"
@@ -243,34 +248,27 @@ pred_hsf <- function (.site,
     
     # FR predictions + SEs
     # make rasters for prediction
-    rast.stem <- subset(site.rast, c("a.stem", "TRT"))
+    rast.stem <- subset(site.rast, c("a.stem", "TRT", "cluster"))
     
     # names
     names(rast.stem)[1] <- "avail"
     
     # FR predictions
-    beta.stem <- predict(object = rast.stem, 
-                         model = on.stem, 
-                         fun = predict.gam,
-                         na.omit = T,
-                         exclude = "s(cluster)", 
-                         newdata.guaranteed = TRUE)
-    
-    beta.ch <- predict(object = rast.stem, 
-                       model = on.ch, 
+    beta.cc <- predict(object = rast.stem, 
+                       model = on.cc, 
                        fun = predict.gam,
-                       na.omit = T,
-                       exclude = "s(cluster)", 
+                       na.omit = T, 
                        newdata.guaranteed = TRUE)
     
     beta.dEdge <- predict(object = rast.stem, 
                           model = on.dEdge, 
                           fun = predict.gam,
                           na.omit = T,
-                          exclude = "s(cluster)", 
                           newdata.guaranteed = TRUE)
     
     # main coefs
+    beta.stem <- hsf$mean[hsf$param == "stem"]
+    beta.ch <- hsf$mean[hsf$param == "ch"]
     beta.twi <- hsf$mean[hsf$param == "twi"]
     beta.twi2 <- hsf$mean[hsf$param == "twi2"]
     beta.vrm <- hsf$mean[hsf$param == "vrm"]
@@ -284,10 +282,11 @@ pred_hsf <- function (.site,
       beta.twi2 * site.rast$twi2 +
       beta.vrm * site.rast$vrm +
       beta.vrm2 * site.rast$vrm2 +
-      
-      # functional responses
       beta.stem * site.rast$stem +
       beta.ch * site.rast$ch +
+      
+      # functional responses
+      beta.cc * site.rast$cc +
       beta.dEdge * site.rast$dEdge
     
   } # season == "on"

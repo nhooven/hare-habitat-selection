@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 17 Jul 2026
+# COMPLETED: 20 Jul 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -172,7 +172,21 @@ appraise(models.ch[[1]])
 write.table(aic_tab(models.ch), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
-# 5c. dEdge ----
+# 5c. CC ----
+# ______________________________________________________________________________
+
+models.cc <- fr_model("cc", "a.vo")
+
+aic_tab(models.cc)  # M3
+
+summary(models.cc[[3]])
+plot(models.cc[[3]])
+appraise(models.cc[[3]])
+
+write.table(aic_tab(models.cc), "clipboard", sep = "\t")
+
+# ______________________________________________________________________________
+# 5d. dEdge ----
 # ______________________________________________________________________________
 
 models.dEdge <- fr_model("dEdge", "a.vo")
@@ -190,4 +204,5 @@ write.table(aic_tab(models.dEdge), "clipboard", sep = "\t")
 # ______________________________________________________________________________
 
 saveRDS(models.vo[[3]], "model_results/fr_models/off_vo.rds")
+saveRDS(models.cc[[3]], "model_results/fr_models/off_cc.rds")
 saveRDS(models.dEdge[[2]], "model_results/fr_models/off_dEdge.rds")

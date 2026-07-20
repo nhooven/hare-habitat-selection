@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -20,11 +20,11 @@ library(mgcv)
 
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
+off.cc <- readRDS("model_results/fr_models/off_cc.rds")
 off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
-on.stem <- readRDS("model_results/fr_models/on_stem.rds")
-on.ch <- readRDS("model_results/fr_models/on_ch.rds")
+on.cc <- readRDS("model_results/fr_models/on_cc.rds")
 on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # data
@@ -222,11 +222,14 @@ fr_pred_plot <- function (
 
 # ______________________________________________________________________________
 # 4. Plots ----
+
+# 300 x 300
+
 # ______________________________________________________________________________
 
-fr_pred_plot(off.vo, 3, "vo", "a.vo", "off") # ***
-fr_pred_plot(off.dEdge, 2, "ch", "a.vo", "off") 
+fr_pred_plot(off.vo, 3, "vo", "a.vo", "off")
+fr_pred_plot(off.cc, 3, "cc", "a.vo", "off") 
+fr_pred_plot(off.dEdge, 2, "dEdge", "a.vo", "off") 
 
-fr_pred_plot(on.stem, 2, "stem", "a.stem", "on")
-fr_pred_plot(on.ch, 4, "ch", "a.stem", "on") # *
-fr_pred_plot(on.dEdge, 4, "dEdge", "a.stem", "on")  # ***
+fr_pred_plot(on.cc, 2, "cc", "a.stem", "on")
+fr_pred_plot(on.dEdge, 4, "dEdge", "a.stem", "on")

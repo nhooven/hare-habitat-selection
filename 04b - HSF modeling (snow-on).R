@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 05 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -23,7 +23,7 @@ hs.data <- readRDS("data_for_model/on_data.rds")
 # residuals for log(AKDE)
 hs.data$g.s <- residuals(lm(log(akde) ~ 
                               twi + twi2 + vrm + vrm2 + 
-                              stem + ch + dEdge,
+                              stem + ch + cc + dEdge,
                             data = hs.data))
 
 # ______________________________________________________________________________
@@ -65,13 +65,13 @@ calc_vif <- function (x) {
 
 # subset just the linear coefficients
 # assume squared terms will be highly correlated to their linear terms
-covs.lin <- hs.data |> dplyr::select(g.s, twi, vrm, stem, ch, dEdge)
+covs.lin <- hs.data |> dplyr::select(g.s, twi, vrm, stem, ch, cc, dEdge)
 
 # correlation
-cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.3
+cor(covs.lin, method = "pearson") |> round(2)   # nothing over 0.6
 
 # VIF
-calc_vif(covs.lin)  # all < 1.2
+calc_vif(covs.lin)  # all < 2.1
 
 # ______________________________________________________________________________
 # 3. Setup ----
@@ -93,7 +93,8 @@ hs.data <- hs.data |>
     TSPID5 = TSPID,
     TSPID6 = TSPID,
     TSPID7 = TSPID,
-    TSPID8 = TSPID
+    TSPID8 = TSPID,
+    TSPID9 = TSPID
     
   )
 
@@ -130,7 +131,7 @@ M.form <- case ~
   twi + twi2 + vrm + vrm2 +
   
   # STRUCTURE
-  stem + ch + dEdge +
+  stem + ch + cc + dEdge +
   
   # random intercepts
   f(TSPID, model = "iid", hyper = list(theta = list(initial = log(1/1e6), fixed = T))) +
@@ -143,7 +144,8 @@ M.form <- case ~
   f(TSPID5, vrm2, model = "iid", hyper = hyper.list) +
   f(TSPID6, stem, model = "iid", hyper = hyper.list) +
   f(TSPID7, ch, model = "iid", hyper = hyper.list) +
-  f(TSPID8, dEdge, model = "iid", hyper = hyper.list)
+  f(TSPID8, cc, model = "iid", hyper = hyper.list) +
+  f(TSPID9, dEdge, model = "iid", hyper = hyper.list)
 
 # ______________________________________________________________________________
 # 5. Fit model ----

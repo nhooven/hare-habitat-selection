@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 04 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -41,7 +41,7 @@ join_slopes <- function (.slopes, .sds, .season) {
   slopes.joined <- .slopes |> 
     
     # pivot slopes
-    pivot_longer(cols = twi:dEdge) |>
+    pivot_longer(cols = g.s:dEdge) |>
     
     rename(param = name,
            beta = value) |>
@@ -51,7 +51,7 @@ join_slopes <- function (.slopes, .sds, .season) {
       
       .sds |> 
         
-        pivot_longer(cols = twi:dEdge) |>
+        pivot_longer(cols = g.s:dEdge) |>
         
         rename(param = name,
                sd = value)
@@ -64,7 +64,7 @@ join_slopes <- function (.slopes, .sds, .season) {
     slopes.joined <- .slopes |> 
       
       # pivot slopes
-      pivot_longer(cols = twi:dEdge) |>
+      pivot_longer(cols = g.s:dEdge) |>
       
       rename(param = name,
              beta = value) |>
@@ -74,7 +74,7 @@ join_slopes <- function (.slopes, .sds, .season) {
         
         .sds |> 
           
-          pivot_longer(cols = twi:dEdge) |>
+          pivot_longer(cols = g.s:dEdge) |>
           
           rename(param = name,
                  sd = value)

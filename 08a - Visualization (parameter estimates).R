@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 17 Jul 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -41,10 +41,10 @@ levels.on <- M.on[[1]]$param
 
 # labels
 labels.off <- c("log(G[s])","wetness", "wetness2", "ruggedness", "ruggedness2",
-                "visual obstruction", "canopy height", "distance to edge")
+                "visual obstruction", "canopy height", "canopy cover", "distance to edge")
 
 labels.on <- c("log(G[s])","wetness", "wetness2", "ruggedness", "ruggedness2",
-               "stem density", "canopy height", "distance to edge")
+               "stem density", "canopy height", "canopy cover", "distance to edge")
 
 # ______________________________________________________________________________
 # 3b. Function ----
@@ -168,6 +168,7 @@ both.pop <- bind_rows(
       param %in% c("visual obstruction",
                    "stem density",
                    "canopy height",
+                   "canopy cover",
                    "distance to edge") ~ "focal",
       param %in% c("wetness",
                    "wetness2",
@@ -188,6 +189,7 @@ both.pop <- bind_rows(
                                      "visual obstruction",
                                      "stem density",
                                      "canopy height",
+                                     "canopy cover",
                                      "distance to edge"),
                    labels = c("wetness",
                               "wetness (sq)",
@@ -196,6 +198,7 @@ both.pop <- bind_rows(
                               "visual obstruction",
                               "stem density",
                               "canopy height",
+                              "canopy cover",
                               "distance to edge")),
     
     group = factor(group, levels = c("focal", "conditions"))
@@ -238,6 +241,7 @@ both.rs <- bind_rows(
       param %in% c("visual obstruction",
                    "stem density",
                    "canopy height",
+                   "canopy cover",
                    "distance to edge") ~ "focal"
       
     )
@@ -254,6 +258,7 @@ both.rs <- bind_rows(
                                      "visual obstruction",
                                      "stem density",
                                      "canopy height",
+                                     "canopy cover",
                                      "distance to edge"),
                    labels = c("wetness",
                               "wetness (sq)",
@@ -262,6 +267,7 @@ both.rs <- bind_rows(
                               "visual obstruction",
                               "stem density",
                               "canopy height",
+                              "canopy cover",
                               "distance to edge")),
     
     group = factor(group, levels = c("focal", "conditions"))
@@ -278,6 +284,7 @@ ggplot() +
   
   facet_wrap(~ group,
              scales = "free_y",
+             space = "free_y",
              nrow = 2,
              strip.position = "right") +      
   
@@ -321,7 +328,7 @@ ggplot() +
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         
-        legend.position = c(0.82, 0.15),
+        legend.position = c(0.86, 0.15),
         legend.background = element_rect(fill = "white",
                                          color = "gray"),
         legend.title = element_blank(),
@@ -336,7 +343,7 @@ ggplot() +
   guides(color = guide_legend(override.aes = list(size = 2.5))) +
   
   # axis range
-  coord_cartesian(xlim = c(-2.2, 2.2)) +
+  coord_cartesian(xlim = c(-1.2, 1.2)) +
   
   # labels
   xlab("Selection coefficient") +
@@ -347,4 +354,4 @@ ggplot() +
   
   scale_y_discrete(limits = rev)
 
-# 465 x 293
+# 484 x 315

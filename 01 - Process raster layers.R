@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 17 Jul 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -17,7 +17,7 @@ library(landscapemetrics)
 library(sf)
 
 # ______________________________________________________________________________
-# 2. Read rasters ----
+# 2. Read spatial data ----
 # ______________________________________________________________________________
 
 # raster directory
@@ -41,6 +41,10 @@ rast.wsr.post <- rast(paste0(dir.rast, "veg_pred/RF/wsr_post_new.tif"))
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
+
+# 30 m canopy cover
+rast.cc.pre <- rast(paste0(dir.rast, "TCC/tcc_2023_utm.tif"))
+rast.cc.post <- rast(paste0(dir.rast, "TCC/tcc_2024_utm.tif"))
 
 # ______________________________________________________________________________
 # 3. Mosaic canopy layers ----
@@ -98,9 +102,6 @@ canopy.post <- merge(
   
 )
 
-# ______________________________________________________________________________
-# 3a. Canopy cover ----
-
 # units 
 units <- st_read("D:/hare_project/data_spatial/Units/units_fixed_utm/units_fixed_utm.shp") |>
   
@@ -108,24 +109,18 @@ units <- st_read("D:/hare_project/data_spatial/Units/units_fixed_utm/units_fixed
   
   arrange(name) |>
   
-  st_transform(crs(canopy.post))
+  st_transform(crs(canopy.pre))
 
 # ______________________________________________________________________________
+# 3a. Canopy cover ----
+# ______________________________________________________________________________
 
-# mask to unit boundaries
-# 06-29-2026
-# these pre canopy cover metrics led to some highly incorrect values for some of the
-# units - let's use 2016 instead and admit some bias
-canopy.pre.cc <- mask(crop(canopy.2016$cc, vect(units)), vect(units))
-canopy.post.cc <- mask(crop(canopy.post$cc, vect(units)), vect(units))
+# change anything > 100 to NA
+rast.cc.pre[rast.cc.pre > 100] <- NA
+rast.cc.post[rast.cc.post > 100] <- NA
 
-# merge and project
-rast.cc.pre <- merge(canopy.pre.cc, canopy.2016$cc) |> project(rast.cover.pre)
-rast.cc.post <- merge(canopy.post.cc, canopy.2016$cc) |> project(rast.cover.post)
-
-# fill in blanks (between lidar tiles)
-rast.cc.pre <- focal(rast.cc.pre, w = 3, fun = mean, na.policy = "only", na.rm = T)
-rast.cc.post <- focal(rast.cc.post, w = 3, fun = mean, na.policy = "only", na.rm = T)
+plot(rast.cc.pre)
+plot(rast.cc.post)
 
 # ______________________________________________________________________________
 # 3b. Canopy height ----
@@ -147,28 +142,6 @@ rast.ch.post <- focal(rast.ch.post, w = 3, fun = mean, na.policy = "only", na.rm
 ch.post.quant <- quantile(values(rast.ch.post), na.rm = T, prob = 0.9999)
 
 rast.ch.post <- clamp(rast.ch.post, upper = ch.post.quant)
-
-# ______________________________________________________________________________
-# 4. Sample in buffers ----
-# ______________________________________________________________________________
-
-# mean VO
-#rast.vo100.pre <- focal(rast.vo.pre, w = 21, fun = mean, na.rm = T)
-#rast.vo100.post <- focal(rast.vo.post, w = 21, fun = mean, na.rm = T)
-
-# mean stem
-#rast.stem100.pre <- focal(rast.stem.pre, w = 21, fun = mean, na.rm = T)
-#rast.stem100.post <- focal(rast.stem.post, w = 21, fun = mean, na.rm = T)
-
-# mean CH
-#rast.ch100.pre <- focal(rast.ch.pre, w = 21, fun = mean, na.rm = T)
-#rast.ch100.post <- focal(rast.ch.post, w = 21, fun = mean, na.rm = T)
-
-# edge density
-#rast.ed <- rast("data_raster/ed_100.tif")
-
-# replace -999 with NA
-#rast.ed <- subst(rast.ed, -999, NA)
 
 # ______________________________________________________________________________
 # 5. Closest unit raster ----
@@ -238,8 +211,6 @@ ext(rast.cover.pre)
 rast.all <- c(
   
   # conditions
-  resample(rast.cc.pre, rast.cover.pre),
-  resample(rast.cc.post, rast.cover.pre),
   resample(rast.twi, rast.cover.pre),
   resample(rast.vrm, rast.cover.pre),
   resample(rast.wsr.pre, rast.cover.pre),
@@ -252,16 +223,22 @@ rast.all <- c(
   resample(rast.vo.post, rast.cover.pre),
   resample(rast.ch.pre, rast.cover.pre),
   resample(rast.ch.post, rast.cover.pre),
-  resample(rast.dEdge, rast.cover.pre)
+  resample(rast.dEdge, rast.cover.pre),
+  resample(rast.cc.pre, rast.cover.pre),
+  resample(rast.cc.post, rast.cover.pre)
   
 )
 
 # change names
 names(rast.all) <- c(
   
-  "cc.pre", "cc.post", "twi", "vrm",
+  "twi", "vrm",
   "wsr.pre", "wsr.post",
-  "stem.pre", "stem.post", "vo.pre", "vo.post", "ch.pre", "ch.post", "dEdge"
+  "stem.pre", "stem.post", 
+  "vo.pre", "vo.post", 
+  "ch.pre", "ch.post", 
+  "dEdge", 
+  "cc.pre", "cc.post"
   
   )
 

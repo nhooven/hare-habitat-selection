@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 29 Jun 2026
+# LAST MODIFIED: 30 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -106,11 +106,11 @@ M.on.rs.var <- extract_RS_variance(M.on)
 # function
 extract_RS <- function (.model) {
   
-  # random slope adjustment marginals (remove intercept and g.s)
-  marg.rs <- .model$marginals.random[-c(1, 2)]
+  # random slope adjustment marginals (remove intercept)
+  marg.rs <- .model$marginals.random[-1]
   
-  # param names (remove intercept and g.s)
-  param.names <- rownames(.model$summary.fixed)[3:(length(marg.rs) + 2)]
+  # param names (remove intercept)
+  param.names <- rownames(.model$summary.fixed)[2:(length(marg.rs) + 1)]
   
   # internal function - to apply across list elements (i.e., parameters)
   extract_RS_int <- function (.param) {
@@ -130,20 +130,22 @@ extract_RS <- function (.model) {
   # population-level effects
   pop.means <- do.call(cbind, lapply(.model$marginals.fixed, 
                                      inla.emarginal, 
-                                     fun = mean))[, -c(1, 2)]
+                                     fun = mean))[, -1]
   
   cond.slopes <- sweep(all.deviations, 2, pop.means, FUN = "+") |> as.data.frame()
   
   # extract SDs
   # importantly, these are the SDs for the DEVIATIONS, not the conditional estimates
   # however we can still use them for IVW since they're all on the same scale
-  cond.slopes.sd <- cbind(.model$summary.random$TSPID2$sd,
+  cond.slopes.sd <- cbind(.model$summary.random$TSPID1$sd,
+                          .model$summary.random$TSPID2$sd,
                           .model$summary.random$TSPID3$sd,
                           .model$summary.random$TSPID4$sd,
                           .model$summary.random$TSPID5$sd,
                           .model$summary.random$TSPID6$sd,
                           .model$summary.random$TSPID7$sd,
-                          .model$summary.random$TSPID8$sd) |> as.data.frame()
+                          .model$summary.random$TSPID8$sd,
+                          .model$summary.random$TSPID9$sd) |> as.data.frame()
   
   # parameter names
   colnames(cond.slopes) <- param.names
@@ -192,3 +194,17 @@ M.on.list <- list(M.on.pop.eff,
 
 saveRDS(M.off.list, "model_results/M_off.rds")
 saveRDS(M.on.list, "model_results/M_on.rds")
+
+# ______________________________________________________________________________
+# 7. Tables ----
+
+#M.off.list <- readRDS("model_results/M_off.rds")
+#M.on.list <- readRDS("model_results/M_on.rds")
+
+# ______________________________________________________________________________
+
+write.table(M.off.list[[1]], "clipboard", sep = "\t")
+write.table(M.off.list[[2]], "clipboard", sep = "\t")
+
+write.table(M.on.list[[1]], "clipboard", sep = "\t")
+write.table(M.on.list[[2]], "clipboard", sep = "\t")

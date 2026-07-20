@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 09 Jun 2026
 # COMPLETED: 
-# LAST MODIFIED: 09 Jun 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # here we want to look at overall predictive ability
@@ -27,27 +27,52 @@ library(mgcv)
 M.off <- readRDS("model_results/M_off.rds")
 M.on <- readRDS("model_results/M_on.rds")
 
-# fr models
+# FR models
 # off 
 off.vo <- readRDS("model_results/fr_models/off_vo.rds")
-off.dOpen <- readRDS("model_results/fr_models/off_dOpen.rds")
-off.dDM <- readRDS("model_results/fr_models/off_dDM.rds")
-off.ed <- readRDS("model_results/fr_models/off_ed.rds")
+off.cc <- readRDS("model_results/fr_models/off_cc.rds")
+off.dEdge <- readRDS("model_results/fr_models/off_dEdge.rds")
 
 # on
-on.stem <- readRDS("model_results/fr_models/on_stem.rds")
-on.ch <- readRDS("model_results/fr_models/on_ch.rds")
-on.cc2 <- readRDS("model_results/fr_models/on_cc2.rds")
-on.dOpen <- readRDS("model_results/fr_models/on_dOpen.rds")
-on.dDM <- readRDS("model_results/fr_models/on_dDM.rds")
+on.cc <- readRDS("model_results/fr_models/on_cc.rds")
+on.dEdge <- readRDS("model_results/fr_models/on_dEdge.rds")
 
 # data
 off.fr.data <- readRDS("data_for_model/off_fr.rds")
 on.fr.data <- readRDS("data_for_model/on_fr.rds")
 
-# HS data
-off.hs.data <- readRDS("data_for_model/off_data.rds")
+# HS data (bind in site column)
+off.hs.data <- readRDS("data_for_model/off_data.rds") 
 on.hs.data <- readRDS("data_for_model/on_data.rds")
+
+# bind in site and sex columns
+off.hs.data <- off.hs.data |>
+  
+  left_join(
+  
+    readRDS("data_cleaned/data_off.rds") |> 
+    
+    dplyr::select(site, sex, track_season_post) |>
+    
+    group_by(track_season_post) |>
+    
+    slice(1)
+  
+  )
+
+on.hs.data <- on.hs.data |>
+  
+  left_join(
+    
+    readRDS("data_cleaned/data_on.rds") |> 
+      
+      dplyr::select(site, sex, track_season_post) |>
+      
+      group_by(track_season_post) |>
+      
+      slice(1)
+    
+  )
 
 # ______________________________________________________________________________
 # 3. Boyce index ----
@@ -64,41 +89,39 @@ boyce <- function (.hsf,
     # use/availability data
     hs.data <- off.hs.data |>
       
-      # add TRT
-      mutate(TRT = case_when(
-        
-        year == "PRE" ~ "UNTHIN",
-        year %in% c("POST1", "POST2") & c.trt == "CTRL" ~ "UNTHIN",
-        year %in% c("POST1", "POST2") & c.trt == "RET" ~ "RET",
-        year %in% c("POST1", "POST2") & c.trt == "PIL" ~ "PIL"
-        
-      )
+      # add TRT and cluster
+      mutate(TRT = c.trt,
+             cluster = substr(site, 1, 1)) |>
       
-    ) |>
-      
-      dplyr::select(track_season_post, case, TRT, 
-                    vo, ch, cc, cc2, twi, twi2, vrm, vrm2, dOpen, dDM, ed) |>
+      dplyr::select(track_season_post, case, TRT, cluster, 
+                    vo, ch, cc, twi, twi2, vrm, vrm2, dEdge) |>
       
       rename(TSPID = track_season_post)
+    
+    # add residuals
+    hs.data$g.s <- residuals(lm(log(akde) ~ 
+                                  twi + twi2 + vrm + vrm2 + 
+                                  vo + ch + cc + dEdge,
+                                data = off.hs.data))
     
     # base coefficients
     coef.base <- M.off[[1]] |> dplyr::select(param, mean)
     
     # FR coefficients
-    coef.fr <- off.fr.data |> dplyr::select(TSPID, TRT, a.vo:a.ed) |>
+    coef.fr <- off.fr.data |> dplyr::select(TSPID, TRT, cluster, a.vo) |>
       
       group_by(TSPID) |> slice(1) |> ungroup() |>
       
       mutate(
         
-        beta.vo = predict(off.vo, data.frame(TRT = TRT, avail = a.vo)),
-        beta.dOpen = predict(off.dOpen, data.frame(TRT = TRT, avail = a.dOpen)),
-        beta.dDM = predict(off.dDM, data.frame(TRT = TRT, avail = a.dDM)),
-        beta.ed = predict(off.ed, data.frame(TRT = TRT, avail = a.ed))
+        beta.vo = predict(off.vo, data.frame(TRT = TRT, cluster = cluster, avail = a.vo)),
+        beta.cc = predict(off.cc, data.frame(TRT = TRT, cluster = cluster, avail = a.vo)),
+        beta.dEdge = predict(off.dEdge, data.frame(TRT = TRT, cluster = cluster, avail = a.vo))
+
         
       ) |>
       
-      dplyr::select(TSPID, beta.vo:beta.ed)
+      dplyr::select(TSPID, beta.vo, beta.cc, beta.dEdge)
     
     # add implied coefs to all use/avail
     hs.data.fr <- hs.data |>
@@ -110,33 +133,29 @@ boyce <- function (.hsf,
     # calculate w(x)
     hs.data$pred.base <- exp(
       
-      hs.data$vo * coef.base$mean[coef.base$param == "vo"] +
-      hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
-      hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
-      hs.data$cc2 * coef.base$mean[coef.base$param == "cc2"] +
+      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
       hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
       hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
       hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
       hs.data$vrm2 * coef.base$mean[coef.base$param == "vrm2"] +
-      hs.data$dOpen * coef.base$mean[coef.base$param == "dOpen"] +
-      hs.data$dDM * coef.base$mean[coef.base$param == "dDM"] +
-      hs.data$ed * coef.base$mean[coef.base$param == "ed"]
+      hs.data$vo * coef.base$mean[coef.base$param == "vo"] +
+      hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
+      hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
+      hs.data$dEdge * coef.base$mean[coef.base$param == "dEdge"]
       
     )
     
     hs.data$pred.fr <- exp(
       
-      hs.data$vo * hs.data.fr$beta.vo +
-      hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
-      hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
-      hs.data$cc2 * coef.base$mean[coef.base$param == "cc2"] +
+      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
       hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
       hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
       hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
       hs.data$vrm2 * coef.base$mean[coef.base$param == "vrm2"] +
-      hs.data$dOpen * hs.data.fr$beta.dOpen +
-      hs.data$dDM * hs.data.fr$beta.dDM +
-      hs.data$ed * hs.data.fr$beta.ed
+      hs.data$vo * hs.data.fr$beta.vo +
+      hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
+      hs.data$cc * hs.data.fr$beta.cc +
+      hs.data$dEdge * hs.data.fr$beta.dEdge
       
     )
     
@@ -147,42 +166,38 @@ boyce <- function (.hsf,
     # use/availability data
     hs.data <- on.hs.data |>
       
-      # add TRT
-      mutate(TRT = case_when(
-        
-        year == "PRE" ~ "UNTHIN",
-        year %in% c("POST1", "POST2") & c.trt == "CTRL" ~ "UNTHIN",
-        year %in% c("POST1", "POST2") & c.trt == "RET" ~ "RET",
-        year %in% c("POST1", "POST2") & c.trt == "PIL" ~ "PIL"
-        
-      )
+      # add TRT and cluster
+      mutate(TRT = c.trt,
+             cluster = substr(site, 1, 1)) |>
       
-      ) |>
-      
-      dplyr::select(track_season_post, case, TRT, 
-                    stem, ch, cc, cc2, twi, twi2, vrm, vrm2, dOpen, dDM, ed) |>
+      dplyr::select(track_season_post, case, TRT, cluster, 
+                    stem, ch, cc, twi, twi2, vrm, vrm2, dEdge) |>
       
       rename(TSPID = track_season_post)
+    
+    # add residuals
+    hs.data$g.s <- residuals(lm(log(akde) ~ 
+                                  twi + twi2 + vrm + vrm2 + 
+                                  vo + ch + cc + dEdge,
+                                data = on.hs.data))
     
     # base coefficients
     coef.base <- M.on[[1]] |> dplyr::select(param, mean)
     
     # FR coefficients
-    coef.fr <- on.fr.data |> dplyr::select(TSPID, TRT, a.stem:a.ed) |>
+    coef.fr <- on.fr.data |> dplyr::select(TSPID, TRT, cluster, a.stem) |>
       
       group_by(TSPID) |> slice(1) |> ungroup() |>
       
       mutate(
         
-        beta.stem = predict(on.stem, data.frame(TRT = TRT, avail = a.stem)),
-        beta.ch = predict(on.ch, data.frame(TRT = TRT, avail = a.ch)),
-        beta.cc2 = predict(on.cc2, data.frame(TRT = TRT, avail = a.cc)),
-        beta.dOpen = predict(on.dOpen, data.frame(TRT = TRT, avail = a.dOpen)),
-        beta.dDM = predict(on.dDM, data.frame(TRT = TRT, avail = a.dDM))
+        beta.cc = predict(on.cc, data.frame(TRT = TRT, cluster = cluster, avail = a.stem)),
+        beta.dEdge = predict(on.dEdge, data.frame(TRT = TRT, cluster = cluster, avail = a.stem))
+        
         
       ) |>
       
-      dplyr::select(TSPID, beta.stem:beta.dDM)
+      dplyr::select(TSPID, beta.cc, beta.dEdge)
     
     # add implied coefs to all use/avail
     hs.data.fr <- hs.data |>
@@ -194,33 +209,29 @@ boyce <- function (.hsf,
     # calculate w(x)
     hs.data$pred.base <- exp(
       
-      hs.data$stem * coef.base$mean[coef.base$param == "stem"] +
-        hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
-        hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
-        hs.data$cc2 * coef.base$mean[coef.base$param == "cc2"] +
+      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
         hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
         hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
         hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
         hs.data$vrm2 * coef.base$mean[coef.base$param == "vrm2"] +
-        hs.data$dOpen * coef.base$mean[coef.base$param == "dOpen"] +
-        hs.data$dDM * coef.base$mean[coef.base$param == "dDM"] +
-        hs.data$ed * coef.base$mean[coef.base$param == "ed"]
+        hs.data$stem * coef.base$mean[coef.base$param == "stem"] +
+        hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
+        hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
+        hs.data$dEdge * coef.base$mean[coef.base$param == "dEdge"]
       
     )
     
     hs.data$pred.fr <- exp(
       
-      hs.data$stem * hs.data.fr$beta.stem +
-        hs.data$ch * hs.data.fr$beta.ch +
-        hs.data$cc * coef.base$mean[coef.base$param == "cc"] +
-        hs.data$cc2 * hs.data.fr$beta.cc2 +
+      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
         hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
         hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
         hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
         hs.data$vrm2 * coef.base$mean[coef.base$param == "vrm2"] +
-        hs.data$dOpen * hs.data.fr$beta.dOpen +
-        hs.data$dDM * hs.data.fr$beta.dDM +
-        hs.data$ed * coef.base$mean[coef.base$param == "ed"]
+        hs.data$stem * coef.base$mean[coef.base$param == "stem"] +
+        hs.data$ch * coef.base$mean[coef.base$param == "ch"] +
+        hs.data$cc * hs.data.fr$beta.cc +
+        hs.data$dEdge * hs.data.fr$beta.dEdge
       
     )
     
@@ -408,20 +419,20 @@ boyce <- function (.hsf,
 off.pop <- rbind(
   
   cbind(boyce("M.off", "pop", "base"),
-        predictions = "base"),
+        model = "base"),
   
   cbind(boyce("M.off", "pop", "fr"),
-        predictions = "fr")
+        model = "fr")
   
 )
 
 on.pop <- rbind(
   
   cbind(boyce("M.on", "pop", "base"),
-        predictions = "base"),
+        model = "base"),
   
   cbind(boyce("M.on", "pop", "fr"),
-        predictions = "fr")
+        model = "fr")
   
 )
 
@@ -439,15 +450,15 @@ on.indiv.fr <- boyce("M.on", "indiv", "fr")
 # ______________________________________________________________________________
 
 # off
-off.pop.base <- off.pop |> filter(predictions == "base")
-off.pop.fr <- off.pop |> filter(predictions == "fr")
+off.pop.base <- off.pop |> filter(model == "base")
+off.pop.fr <- off.pop |> filter(model == "fr")
 
 cor.test(off.pop.base$bins, off.pop.base$u.a.ratio)$estimate
 cor.test(off.pop.fr$bins, off.pop.fr$u.a.ratio)$estimate
 
 # on
-on.pop.base <- on.pop |> filter(predictions == "base")
-on.pop.fr <- on.pop |> filter(predictions == "fr")
+on.pop.base <- on.pop |> filter(model == "base")
+on.pop.fr <- on.pop |> filter(model == "fr")
 
 cor.test(on.pop.base$bins, on.pop.base$u.a.ratio)$estimate
 cor.test(on.pop.fr$bins, on.pop.fr$u.a.ratio)$estimate
@@ -456,11 +467,12 @@ cor.test(on.pop.fr$bins, on.pop.fr$u.a.ratio)$estimate
 # 4b. Individual-level ----
 # ______________________________________________________________________________
 
+# helper function - calculate correlation
 indiv_corr <- function (x) {
   
   if (nrow(x) > 1) {
   
-  corr <- cor.test(x$bins, x$u.a.ratio)$estimate
+  corr <- cor(x$bins, x$u.a.ratio)
   
   return(corr)
   
@@ -468,255 +480,231 @@ indiv_corr <- function (x) {
   
 }
 
-# off
-off.indiv.base.corr <- lapply(split(off.indiv.base, ~TSPID), indiv_corr) |>
+# function to do it all self-contained
+indiv_corr_df <- function (.boyce,
+                           .season,
+                           .model) {
   
-  do.call(rbind, args = _) |>
-  
-  as.data.frame()
-
-off.indiv.fr.corr <- lapply(split(off.indiv.fr, ~TSPID), indiv_corr)  |>
-  
-  do.call(rbind, args = _) |>
-  
-  as.data.frame()
-
-# on
-on.indiv.base.corr <- lapply(split(on.indiv.base, ~TSPID), indiv_corr) |>
-  
-  do.call(rbind, args = _) |>
-  
-  as.data.frame()
-
-on.indiv.fr.corr <- lapply(split(on.indiv.fr, ~TSPID), indiv_corr)  |>
-  
-  do.call(rbind, args = _) |>
-  
-  as.data.frame()
-
-# ______________________________________________________________________________
-# 5. Plots ---
-# ______________________________________________________________________________
-# 5a. U/A vs bin ----
-# ______________________________________________________________________________
-
-bin_plot <- function (.pred,
-                      .which = "pop") {
-  
-  if (.which == "pop") {
-  
-  # labels
-  .pred$predictions <- factor(.pred$predictions,
-                              labels = c("base", "functional response"))
-  
-  ggplot(data = .pred) +
+  .boyce.df <- lapply(split(.boyce, ~TSPID), indiv_corr) |>
     
-    theme_classic() +
+    do.call(rbind, args = _) |>
     
-    geom_line(aes(x = bins,
-                  y = u.a.ratio,
-                  color = predictions),
-              linewidth = 1.1) +
+    as.data.frame() |>
     
-    geom_point(aes(x = bins,
-                   y = u.a.ratio,
-                   color = predictions),
-               size = 2.25,
-               shape = 21,
-               fill = "white") +
+    rename(cor = V1) |>
     
-    scale_x_continuous(breaks = 1:10) +
-    
-    theme(legend.title = element_blank(),
-          legend.position = c(0.7, 0.2)) +
-    
-    xlab("HSF bin") +
-    ylab("Use/availability ratio")
+    mutate(season = .season,
+           model = .model)
   
-  # individual plots
-  } else {
-    
-    
-    
-    
-  }
+  # add rownames as TSP
+  .boyce.df$TSPID <- rownames(.boyce.df)
+  
+  return(.boyce.df)
   
 }
 
-# ______________________________________________________________________________
-# 5b. Distribution of correlations ----
-# ______________________________________________________________________________
-
-corr_dist_plot <- function (x) {
-  
-  ggplot(data = x) +
-    
-    theme_classic() +
-    
-    geom_histogram(aes(x = cor),
-                   fill = "aquamarine3",
-                   color = "white",
-                   bins = 25) +
-    
-    # median and mean
-    geom_vline(xintercept = median(x$cor),
-               linewidth = 0.9) +
-    geom_vline(xintercept = mean(x$cor), 
-               linetype = "dashed",
-               linewidth = 0.9) +
-    
-    coord_cartesian(xlim = c(-1.0, 1.0),
-                    ylim = c(0, 10)) +
-    
-    scale_y_continuous(breaks = seq(0, 10, 2)) +
-    
-    xlab("Spearman's correlation") +
-    ylab("Count of individuals")
-  
-}
-
-# use
-corr_dist_plot(off.indiv.base.corr)
-corr_dist_plot(off.indiv.fr.corr)
-
-corr_dist_plot(on.indiv.base.corr)
-corr_dist_plot(on.indiv.fr.corr)
-
-# ______________________________________________________________________________
-# 6. Correlation distributions by TRT and sex ----
-# ______________________________________________________________________________
-# 6a. Bind in indices ----
-# ______________________________________________________________________________
-
 # off
-off.indiv.df <- bind_rows(
+off.indiv.base.corr <- indiv_corr_df(off.indiv.base, "off", "base")
+off.indiv.fr.corr <- indiv_corr_df(off.indiv.fr, "off", "fr")
+on.indiv.base.corr <- indiv_corr_df(on.indiv.base, "on", "base")
+on.indiv.fr.corr <- indiv_corr_df(on.indiv.fr, "on", "fr")
+
+# ______________________________________________________________________________
+# 5. U/A vs bin plots ---
+# ______________________________________________________________________________
+# 5a. Prepare data ----
+# ______________________________________________________________________________
+
+all.pop <- bind_rows(
   
-  data.frame(TSPID = rownames(off.indiv.base.corr),
-             cor = off.indiv.base.corr$cor,
-             season = "off",
-             model = "base"),
+  off.pop |> mutate(season = "off"),
+  on.pop |> mutate(season = "on")
   
-  data.frame(TSPID = rownames(off.indiv.fr.corr),
-             cor = off.indiv.fr.corr$cor,
-             season = "off",
-             model = "fr")
 ) |>
   
-  # join in
-  left_join(
+  # factors
+  mutate(
     
-    off.fr.data |> group_by(TSPID) |> slice(1) |> dplyr::select(TSPID, sex, TRT)
+    model = factor(model, labels = c("base", "functional")),
+    season = factor(season, labels = c("snow-off", "snow-on"))
     
   )
 
-# on
-on.indiv.df <- bind_rows(
+all.indiv <- bind_rows(
   
-  data.frame(TSPID = rownames(on.indiv.base.corr),
-             cor = on.indiv.base.corr$cor,
-             season = "on",
-             model = "base"),
+  off.indiv.base |> left_join(off.indiv.base.corr),
+  off.indiv.fr |> left_join(off.indiv.fr.corr),
+  on.indiv.base |> left_join(on.indiv.base.corr),
+  on.indiv.fr |> left_join(on.indiv.fr.corr)
   
-  data.frame(TSPID = rownames(on.indiv.fr.corr),
-             cor = on.indiv.fr.corr$cor,
-             season = "on",
-             model = "fr")
 ) |>
   
-  # join in
-  left_join(
+  # factors
+  mutate(
     
-    on.fr.data |> group_by(TSPID) |> slice(1) |> dplyr::select(TSPID, sex, TRT)
+    model = factor(model, labels = c("base", "functional")),
+    season = factor(season, labels = c("snow-off", "snow-on"))
     
   )
 
 # ______________________________________________________________________________
-# 6b. Plot ----
+# 5b. Plot ----
 # ______________________________________________________________________________
 
-plot_corr_by_fact <- function (.df,
-                               .season) {
+ggplot() +
   
-  col.value <- ifelse(.season == "off", "green4", "dodgerblue3")
+  theme_bw() +
   
-  # factor levels
-  .df <- .df |>
-    
-    mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
-           model = factor(model, labels = c("base", "functional response")))
+  facet_grid(season ~ model) +
   
-  ggplot(.df) +
-    
-    theme_bw() +
-    
-    facet_grid(model ~ TRT) +
-    
-    geom_density(aes(x = cor,
-                     linetype = sex),
-                 fill = col.value,
-                 color = col.value,
-                 linewidth = 0.7,
-                 alpha = 0.15) +
-    
-    theme(panel.grid = element_blank(),
-          axis.text = element_text(color = "black"),
-          strip.background = element_rect(color = NA),
-          strip.text = element_text(hjust = 0),
-          axis.title.y = element_blank(),
-          legend.position = c(0.15, 0.85)) +
-    
-    coord_cartesian(xlim = c(-0.8, 1),
-                    ylim = c(0, 3)) +
-    
-    xlab("Spearman's correlation")
+  # individual
+  geom_line(data = all.indiv,
+            aes(x = bins,
+                y = u.a.ratio,
+                group = TSPID,
+                color = cor),
+            linewidth = 0.2,
+            alpha = 0.5) +
   
-}
+  # population
+  geom_line(data = all.pop,
+            aes(x = bins,
+                y = u.a.ratio),
+            color = "black",
+            linewidth = 0.9) +
+  
+  theme(panel.grid = element_blank(),
+        strip.text = element_text(hjust = 0),
+        strip.background = element_rect(color = NA),
+        axis.text = element_text(color = "black")) +
+  
+  scale_color_viridis_c("Correlation") +
+  
+  scale_x_continuous(breaks = c(1:10)) +
+  
+  xlab("HSF score bin") +
+  ylab("Used/available ratio")
 
-plot_corr_by_fact(off.indiv.df, "off")
-plot_corr_by_fact(on.indiv.df, "on")
+# ______________________________________________________________________________
+# 6. Individual comparison plots ----
+# ______________________________________________________________________________
+# 6a. Prep data ----
+# ______________________________________________________________________________
 
-# sex only
-plot_corr_by_sex <- function (.df,
-                              .season) {
+# add identifiers with all indivs
+indiv.corr.id <- all.indiv |>
   
-  col.value <- ifelse(.season == "off", "green4", "dodgerblue3")
+  group_by(TSPID, model) |>
   
-  # factor levels
-  .df <- .df |>
-    
-    mutate(TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")),
-           model = factor(model, labels = c("base", "functional response")))
+  slice(1) |>
   
-  ggplot(.df) +
-    
-    theme_bw() +
-    
-    facet_grid(~ model) +
-    
-    geom_density(aes(x = cor,
-                     linetype = sex),
-                 fill = col.value,
-                 color = col.value,
-                 linewidth = 0.7,
-                 alpha = 0.15) +
-    
-    theme(panel.grid = element_blank(),
-          axis.text = element_text(color = "black"),
-          strip.background = element_rect(color = NA),
-          strip.text = element_text(hjust = 0),
-          axis.title.y = element_blank(),
-          legend.position = c(0.15, 0.85)) +
-    
-    coord_cartesian(xlim = c(-0.8, 1),
-                    ylim = c(0, 3)) +
-    
-    xlab("Spearman's correlation")
+  dplyr::select(TSPID, cor, season, model) |>
   
-}
+  left_join(
+    
+    bind_rows(
+      
+      readRDS("data_cleaned/data_off.rds") |> 
+        
+        dplyr::select(site, sex, track_season_post, c.trt) |>
+        
+        group_by(track_season_post) |>
+        
+        slice(1) |>
+        
+        rename(TSPID = track_season_post) |>
+        
+        mutate(season = "snow-off"),
+      
+      readRDS("data_cleaned/data_on.rds") |> 
+        
+        dplyr::select(site, sex, track_season_post, c.trt) |>
+        
+        group_by(track_season_post) |>
+        
+        slice(1) |>
+        
+        rename(TSPID = track_season_post) |>
+        
+        mutate(season = "snow-on")
+      
+    )
+    
+  ) |>
+  
+  # add cluster
+  mutate(cluster = substr(site, 1, 1))
 
-plot_corr_by_sex(off.indiv.df, "off")
-plot_corr_by_sex(on.indiv.df, "on")
+# ______________________________________________________________________________
+# 6b. Histograms - season x model ----
 
-# median correlation
-off.indiv.df |> group_by(sex, model) |>  summarize(median.cor = median(cor))
-on.indiv.df |> group_by(sex, model) |>  summarize(median.cor = median(cor))
+# calculate mean correlations
+indiv.corr.means.season.model <- indiv.corr.id |>
+  
+  group_by(season, model) |>
+  
+  summarize(mean.cor = mean(cor))
+
+# ______________________________________________________________________________
+
+ggplot(data = indiv.corr.id) +
+  
+  theme_bw() +
+  
+  facet_grid(season ~ model) +
+  
+  geom_histogram(aes(x = cor,
+                     fill = season),
+                 color = "white") +
+  
+  # means
+  geom_vline(data = indiv.corr.means.season.model,
+             aes(xintercept = mean.cor),
+             linetype = "dashed",
+             linewidth = 0.8) +
+  
+  theme(panel.grid = element_blank(),
+        strip.text = element_text(hjust = 0),
+        strip.background = element_rect(color = NA),
+        axis.text = element_text(color = "black"),
+        legend.position = "none") +
+  
+  scale_fill_manual(values = c("green4", "dodgerblue2")) +
+  
+  xlab("Spearman's correlation") +
+  ylab("Individual tracks")
+
+# ______________________________________________________________________________
+# 6c. Performance comparison - season x model ----
+# ______________________________________________________________________________
+
+ggplot(data = indiv.corr.id |> pivot_wider(names_from = model,
+                                           values_from = cor)) +
+  
+  theme_bw() +
+  
+  facet_grid(~ season) +
+  
+  # 1:1 line
+  geom_abline(intercept = 0,
+              slope = 1,
+              linetype = "dashed") +
+
+  geom_point(aes(x = base,
+                 y = functional,
+                 color = season),
+             alpha = 0.5) +
+  
+  theme(panel.grid = element_blank(),
+        strip.text = element_text(hjust = 0),
+        strip.background = element_rect(color = NA),
+        axis.text = element_text(color = "black"),
+        legend.position = "none") +
+  
+  scale_color_manual(values = c("green4", "dodgerblue2")) +
+  
+  coord_cartesian(xlim = c(-0.1, 1),
+                  ylim = c(-0.1, 1)) +
+  
+  xlab("Base correlation") +
+  ylab("Functional correlation")

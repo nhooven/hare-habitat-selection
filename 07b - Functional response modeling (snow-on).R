@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 17 Jul 2026
+# LAST MODIFIED: 20 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -149,40 +149,44 @@ aic_tab <- function(.models) {
 
 models.stem <- fr_model("stem", "a.stem")
 
-aic_tab(models.stem)  # M2
+aic_tab(models.stem)  # M1
 
-summary(models.stem[[2]])
-plot(models.stem[[2]])
-appraise(models.stem[[2]])
+summary(models.stem[[1]])
+#plot(models.stem[[2]])
+#appraise(models.stem[[2]])
 
 write.table(aic_tab(models.stem), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 5b. CH ----
-
-# one outlier - remove
-test.ch <- fr.data |> filter(param == "ch")
-
-hist(test.ch$beta)
-
-which(fr.data$beta < -0.8 & fr.data$param == "ch")
-
-fr.data <- fr.data[-384, ]
-
 # ______________________________________________________________________________
 
 models.ch <- fr_model("ch", "a.stem")
 
-aic_tab(models.ch)  # M4
+aic_tab(models.ch)  # M1
 
-summary(models.ch[[4]])
-plot(models.ch[[4]])
-appraise(models.ch[[4]])
+summary(models.ch[[1]])
+#plot(models.ch[[4]])
+#appraise(models.ch[[4]])
 
 write.table(aic_tab(models.ch), "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
-# 5c. dEdge ----
+# 5c. CC ----
+# ______________________________________________________________________________
+
+models.cc <- fr_model("cc", "a.stem")
+
+aic_tab(models.cc)  # M2
+
+summary(models.cc[[2]])
+plot(models.cc[[2]])
+appraise(models.cc[[2]])
+
+write.table(aic_tab(models.cc), "clipboard", sep = "\t")
+
+# ______________________________________________________________________________
+# 5d. dEdge ----
 # ______________________________________________________________________________
 
 models.dEdge <- fr_model("dEdge", "a.stem")
@@ -199,6 +203,5 @@ write.table(aic_tab(models.dEdge), "clipboard", sep = "\t")
 # 6. Save top models (if not null) ----
 # ______________________________________________________________________________
 
-saveRDS(models.stem[[2]], "model_results/fr_models/on_stem.rds")
-saveRDS(models.ch[[4]], "model_results/fr_models/on_ch.rds")
+saveRDS(models.cc[[2]], "model_results/fr_models/on_cc.rds")
 saveRDS(models.dEdge[[4]], "model_results/fr_models/on_dEdge.rds")
