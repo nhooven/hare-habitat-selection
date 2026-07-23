@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 09 Jun 2026
-# COMPLETED: 
-# LAST MODIFIED: 20 Jul 2026
+# COMPLETED: 23 Jul 2026
+# LAST MODIFIED: 23 Jul 2026
 # R VERSION: 4.5.2
 
 # here we want to look at overall predictive ability
@@ -99,10 +99,11 @@ boyce <- function (.hsf,
       rename(TSPID = track_season_post)
     
     # add residuals
-    hs.data$g.s <- residuals(lm(log(akde) ~ 
-                                  twi + twi2 + vrm + vrm2 + 
-                                  vo + ch + cc + dEdge,
-                                data = off.hs.data))
+    # I shouldn't include this!
+    #hs.data$g.s <- residuals(lm(log(akde) ~ 
+    #                              twi + twi2 + vrm + vrm2 + 
+    #                              vo + ch + cc + dEdge,
+    #                            data = off.hs.data))
     
     # base coefficients
     coef.base <- M.off[[1]] |> dplyr::select(param, mean)
@@ -133,7 +134,7 @@ boyce <- function (.hsf,
     # calculate w(x)
     hs.data$pred.base <- exp(
       
-      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
+      #hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
       hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
       hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
       hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
@@ -147,7 +148,7 @@ boyce <- function (.hsf,
     
     hs.data$pred.fr <- exp(
       
-      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
+      #hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
       hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
       hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
       hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
@@ -176,10 +177,10 @@ boyce <- function (.hsf,
       rename(TSPID = track_season_post)
     
     # add residuals
-    hs.data$g.s <- residuals(lm(log(akde) ~ 
-                                  twi + twi2 + vrm + vrm2 + 
-                                  vo + ch + cc + dEdge,
-                                data = on.hs.data))
+    #hs.data$g.s <- residuals(lm(log(akde) ~ 
+    #                              twi + twi2 + vrm + vrm2 + 
+    #                              vo + ch + cc + dEdge,
+    #                            data = on.hs.data))
     
     # base coefficients
     coef.base <- M.on[[1]] |> dplyr::select(param, mean)
@@ -209,7 +210,7 @@ boyce <- function (.hsf,
     # calculate w(x)
     hs.data$pred.base <- exp(
       
-      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
+      #hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
         hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
         hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
         hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
@@ -223,7 +224,7 @@ boyce <- function (.hsf,
     
     hs.data$pred.fr <- exp(
       
-      hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
+      #hs.data$g.s * coef.base$mean[coef.base$param == "g.s"] +
         hs.data$twi * coef.base$mean[coef.base$param == "twi"] +
         hs.data$twi2 * coef.base$mean[coef.base$param == "twi2"] +
         hs.data$vrm * coef.base$mean[coef.base$param == "vrm"] +
@@ -453,15 +454,15 @@ on.indiv.fr <- boyce("M.on", "indiv", "fr")
 off.pop.base <- off.pop |> filter(model == "base")
 off.pop.fr <- off.pop |> filter(model == "fr")
 
-cor.test(off.pop.base$bins, off.pop.base$u.a.ratio)$estimate
-cor.test(off.pop.fr$bins, off.pop.fr$u.a.ratio)$estimate
+cor.test(off.pop.base$bins, off.pop.base$u.a.ratio, method = "spearman")
+cor.test(off.pop.fr$bins, off.pop.fr$u.a.ratio, method = "spearman")
 
 # on
 on.pop.base <- on.pop |> filter(model == "base")
 on.pop.fr <- on.pop |> filter(model == "fr")
 
-cor.test(on.pop.base$bins, on.pop.base$u.a.ratio)$estimate
-cor.test(on.pop.fr$bins, on.pop.fr$u.a.ratio)$estimate
+cor.test(on.pop.base$bins, on.pop.base$u.a.ratio, method = "spearman")
+cor.test(on.pop.fr$bins, on.pop.fr$u.a.ratio, method = "spearman")
 
 # ______________________________________________________________________________
 # 4b. Individual-level ----
@@ -472,7 +473,7 @@ indiv_corr <- function (x) {
   
   if (nrow(x) > 1) {
   
-  corr <- cor(x$bins, x$u.a.ratio)
+  corr <- cor(x$bins, x$u.a.ratio, method = "spearman")
   
   return(corr)
   
@@ -506,8 +507,26 @@ indiv_corr_df <- function (.boyce,
 # off
 off.indiv.base.corr <- indiv_corr_df(off.indiv.base, "off", "base")
 off.indiv.fr.corr <- indiv_corr_df(off.indiv.fr, "off", "fr")
+
+# on
 on.indiv.base.corr <- indiv_corr_df(on.indiv.base, "on", "base")
 on.indiv.fr.corr <- indiv_corr_df(on.indiv.fr, "on", "fr")
+
+# summaries
+# function
+boyce_indiv_summary <- function (x) {
+  
+  data.frame(mean = mean(x$cor),
+             median = median(x$cor),
+             L90 = quantile(x$cor, prob = 0.05),
+             U90 = quantile(x$cor, prob = 0.95))
+    
+}
+
+boyce_indiv_summary(off.indiv.base.corr)
+boyce_indiv_summary(off.indiv.fr.corr)
+boyce_indiv_summary(on.indiv.base.corr)
+boyce_indiv_summary(on.indiv.fr.corr)
 
 # ______________________________________________________________________________
 # 5. U/A vs bin plots ---
@@ -578,12 +597,14 @@ ggplot() +
         strip.background = element_rect(color = NA),
         axis.text = element_text(color = "black")) +
   
-  scale_color_viridis_c("Correlation") +
+  scale_color_viridis_c(expression(rho)) +
   
-  scale_x_continuous(breaks = c(1:10)) +
+  scale_x_continuous(breaks = 1:10) +
   
   xlab("HSF score bin") +
   ylab("Used/available ratio")
+
+# 570 x 461
 
 # ______________________________________________________________________________
 # 6. Individual comparison plots ----
@@ -643,7 +664,7 @@ indiv.corr.means.season.model <- indiv.corr.id |>
   
   group_by(season, model) |>
   
-  summarize(mean.cor = mean(cor))
+  summarize(median.cor = median(cor))
 
 # ______________________________________________________________________________
 
@@ -659,7 +680,7 @@ ggplot(data = indiv.corr.id) +
   
   # means
   geom_vline(data = indiv.corr.means.season.model,
-             aes(xintercept = mean.cor),
+             aes(xintercept = median.cor),
              linetype = "dashed",
              linewidth = 0.8) +
   
@@ -671,7 +692,7 @@ ggplot(data = indiv.corr.id) +
   
   scale_fill_manual(values = c("green4", "dodgerblue2")) +
   
-  xlab("Spearman's correlation") +
+  xlab(expression(rho)) +
   ylab("Individual tracks")
 
 # ______________________________________________________________________________
