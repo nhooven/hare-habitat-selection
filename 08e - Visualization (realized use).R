@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 18 Jun 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 23 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -698,3 +698,377 @@ ggplot(data = all.RIU |> filter(season == "snow-on")) +
   coord_cartesian(ylim = c(0.22, 4.5))
 
 # 619 x 258
+
+# ______________________________________________________________________________
+# 6. Realized use of refugia, unit, and cover types ----
+# ______________________________________________________________________________
+# 6a. Rasters and all points ----
+
+library(terra)
+library(sf)
+
+# ______________________________________________________________________________
+
+# raster directory
+dir.rast <- "D:/hare_project/data_spatial/Rasters/"
+
+rast.cover.pre <- rast(paste0(dir.rast, "cover_type/cover_type_pre.tif"))
+rast.cover.post <- rast(paste0(dir.rast, "cover_type/cover_type_post.tif"))
+rast.dRet <- rast(paste0(dir.rast, "PCT/dRet.tif"))
+rast.dPil <- rast(paste0(dir.rast, "PCT/dPiles.tif"))
+rast.dUnitInt <- rast(paste0(dir.rast, "PCT/dUnitInt.tif"))
+rast.dUnitExt <- rast(paste0(dir.rast, "PCT/dUnitExt.tif"))
+
+pts <- readRDS("D:/hare_project/data_analysis/General/hare-gps-processing-new/data_cleaned/use_background.rds")
+
+# since we dropped some NAs, we need to know which points were which
+rast.all <- rast("data_raster/rast_all.tif")
+
+# ______________________________________________________________________________
+# 6b. Clean points ----
+# ______________________________________________________________________________
+
+pts.1 <- st_as_sf(pts, coords = c("x", "y"), crs = "epsg:32611") %>%
+  
+  # bind in extracted values
+  bind_cols(
+    
+    .,
+    
+    # extract covariate values
+    extract(x = rast.all, y = .) %>%
+      
+      # remove "ID"
+      dplyr::select(-ID)
+    
+  ) |>
+  
+  filter(case == 0)
+
+# correct values
+pts.2 <- pts.1 |> 
+    
+    # attribute correct values
+    mutate(
+      
+      # CONDITIONS
+      cc = case_when(year == "PRE" ~ cc.pre,
+                     year %in% c("POST1", "POST2") ~ cc.post),
+      wsr = case_when(year == "PRE" ~ wsr.pre,
+                      year %in% c("POST1", "POST2") ~ wsr.post),
+      
+      # LOCAL
+      stem = case_when(year == "PRE" ~ stem.pre,
+                       year %in% c("POST1", "POST2") ~ stem.post),
+      vo = case_when(year == "PRE" ~ vo.pre,
+                     year %in% c("POST1", "POST2") ~ vo.post),
+      ch = case_when(year == "PRE" ~ ch.pre,
+                     year %in% c("POST1", "POST2") ~ ch.post)
+      
+    ) |>
+    
+    # drop variables
+    dplyr::select(
+      
+      -c(trt,
+         season,
+         cc.pre,
+         cc.post,
+         stem.pre,
+         stem.post,
+         vo.pre,
+         vo.post,
+         ch.pre,
+         ch.post)
+      
+    ) |>
+    
+    # drop NAs
+    drop_na(c(cc, twi, vrm, stem, vo, ch, dEdge)) |>
+    
+    # case weights
+    mutate(w = ifelse(case == 0, 5000, 1)) |>
+    
+    # keep correct variables
+    dplyr::select(geometry)
+
+# sample the focal rasters and add to the RIU df
+# combine rasters
+rast.focal <- c(rast.cover.pre, rast.cover.post, rast.dRet, rast.dPil, rast.dUnitInt, rast.dUnitExt)
+
+# extract
+rast.focal.extract <- extract(rast.focal, pts.2)
+
+colnames(rast.focal.extract) <- c("ID", "cover.pre", "cover.post", "dRet", "dPil", "dUnitInt", "dUnitExt")
+
+# add in
+all.RIU.1 <- all.RIU |>
+  
+  bind_cols(
+    
+    rast.focal.extract |>
+      
+      dplyr::select(-ID) |>
+      
+      mutate(in.out = ifelse(dUnitExt == 0, "in", "out"),
+             dUnitEdge = ifelse(dUnitExt == 0,
+                                -dUnitInt,
+                                dUnitExt))
+      
+    
+  ) |>
+  
+  # correct cover type
+  mutate(cover = ifelse(TRT == "unthinned", cover.pre, cover.post))
+
+# ______________________________________________________________________________
+# 6c. Plots ----
+# ______________________________________________________________________________
+
+# in/out
+ggplot(data = all.RIU.1) +
+  
+  theme_bw() +
+  
+  facet_grid(season ~ TRT) +
+  
+  # individual
+  stat_summary(aes(x = in.out,
+                   y = w.x.ind,
+                   group = TSPID,
+                   color = season),
+               fun = mean,
+               geom = "point",
+               color = "gray",
+               alpha = 0.15) +
+  
+  # population
+  stat_summary(aes(x = in.out,
+                   y = w.x.pop,
+                   color = season),
+               fun = mean,
+               geom = "point") +
+  
+  # theme arguments
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.text = element_text(color = "black"),
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(hjust = 0)) +
+  
+  # axis titles
+  xlab("Inside/outside unit") +
+  ylab("Realized intensity of use") +
+  
+  # colors
+  scale_color_manual(values = c("green4", "dodgerblue3")) +
+  scale_fill_manual(values = c("green4", "dodgerblue3")) +
+  
+  # axis scales
+  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
+  
+  coord_cartesian(ylim = c(0.22, 4.5))
+
+# unit edge
+ggplot(data = all.RIU.1) +
+  
+  theme_bw() +
+  
+  facet_grid(season ~ TRT) +
+  
+  geom_vline(xintercept = 0) +
+  
+  # individual level effects
+  geom_smooth(aes(x = dUnitEdge,
+                  y = w.x.ind,
+                  group = TSPID),
+              color = "gray",
+              se = F,
+              method = "gam",
+              linewidth = 0.1,
+              alpha = 0.05) +
+  
+  # population level effects
+  geom_smooth(aes(x = dUnitEdge,
+                  y = w.x.pop,
+                  color = season,
+                  fill = season),
+              linewidth = 0.75,
+              alpha = 0.25,
+              method = "gam") +
+  
+  # theme arguments
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.text = element_text(color = "black"),
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(hjust = 0)) +
+  
+  # axis titles
+  xlab("Distance to unit edge (m)") +
+  ylab("Realized intensity of use") +
+  
+  # colors
+  scale_color_manual(values = c("green4", "dodgerblue3")) +
+  scale_fill_manual(values = c("green4", "dodgerblue3")) +
+  
+  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
+  
+  coord_cartesian(ylim = c(0.22, 4.5))
+
+# cover
+all.RIU.1 |>
+  
+  mutate(cover = factor(cover,
+                        levels = 1:9,
+                        labels = c("other",
+                                   "unthinned doghair",
+                                   "other",
+                                   "open mature",
+                                   "jackstraw",
+                                   "dense mature",
+                                   "dense mature",
+                                   "other",
+                                   "thinned doghair"))) |>
+  
+  drop_na(cover) |>
+
+ggplot() +
+  
+  theme_bw() +
+  
+  facet_grid(season ~ TRT) +
+  
+  # individual
+  stat_summary(aes(x = cover,
+                   y = w.x.ind,
+                   group = TSPID,
+                   color = season),
+               fun = mean,
+               geom = "point",
+               color = "gray",
+               alpha = 0.15) +
+  
+  # population
+  stat_summary(aes(x = cover,
+                   y = w.x.pop,
+                   color = season),
+               fun = mean,
+               geom = "point") +
+  
+  # theme arguments
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust = 1),
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(hjust = 0),
+        axis.title.x = element_blank()) +
+  
+  # axis titles
+  ylab("Realized intensity of use") +
+  
+  # colors
+  scale_color_manual(values = c("green4", "dodgerblue3")) +
+  scale_fill_manual(values = c("green4", "dodgerblue3")) +
+  
+  # axis scales
+  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
+  
+  coord_cartesian(ylim = c(0.22, 4.5))
+
+# distance to refugia
+all.RIU.ret <- all.RIU.1 |> filter(TRT == "retention")
+all.RIU.pil <- all.RIU.1 |> filter(TRT == "piling")
+
+plot.ret <- ggplot(data = all.RIU.ret) +
+  
+  theme_bw() +
+  
+  facet_grid(~ season) +
+  
+  # individual level effects
+  geom_smooth(aes(x = dRet,
+                  y = w.x.ind,
+                  group = TSPID),
+              color = "gray",
+              se = F,
+              method = "gam",
+              linewidth = 0.1,
+              alpha = 0.05) +
+  
+  # population level effects
+  geom_smooth(aes(x = dRet,
+                  y = w.x.pop,
+                  color = season,
+                  fill = season),
+              linewidth = 0.75,
+              alpha = 0.25,
+              method = "gam") +
+  
+  # theme arguments
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.text = element_text(color = "black"),
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(hjust = 0)) +
+  
+  # axis titles
+  xlab("Distance to retention patches (m)") +
+  ylab("Realized intensity of use") +
+  
+  # colors
+  scale_color_manual(values = c("green4", "dodgerblue3")) +
+  scale_fill_manual(values = c("green4", "dodgerblue3")) +
+  
+  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
+  
+  coord_cartesian(ylim = c(0.22, 4.5))
+
+plot.pil <- ggplot(data = all.RIU.pil) +
+  
+  theme_bw() +
+  
+  facet_grid(~ season) +
+  
+  # individual level effects
+  geom_smooth(aes(x = dPil,
+                  y = w.x.ind,
+                  group = TSPID),
+              color = "gray",
+              se = F,
+              method = "gam",
+              linewidth = 0.1,
+              alpha = 0.05) +
+  
+  # population level effects
+  geom_smooth(aes(x = dPil,
+                  y = w.x.pop,
+                  color = season,
+                  fill = season),
+              linewidth = 0.75,
+              alpha = 0.25,
+              method = "gam") +
+  
+  # theme arguments
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.text = element_text(color = "black"),
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(hjust = 0)) +
+  
+  # axis titles
+  xlab("Distance to piles (m)") +
+  ylab("Realized intensity of use") +
+  
+  # colors
+  scale_color_manual(values = c("green4", "dodgerblue3")) +
+  scale_fill_manual(values = c("green4", "dodgerblue3")) +
+  
+  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
+  
+  coord_cartesian(ylim = c(0.22, 4.5))
+
+cowplot::plot_grid(plot.ret, plot.pil, nrow = 2)
