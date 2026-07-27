@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 18 Jun 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 27 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -22,7 +22,7 @@ hs.data <- readRDS("data_for_model/off_data.rds")
 
 # residuals for log(AKDE)
 hs.data$g.s <- residuals(lm(log(akde) ~ 
-                              twi + twi2 + vrm + vrm2 + 
+                              twi + twi2 + vrm + vrm2 +
                               vo + ch + cc + dEdge,
                              data = hs.data))
 

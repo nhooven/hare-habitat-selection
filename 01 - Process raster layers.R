@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 20 Apr 2026
 # COMPLETED: 21 Apr 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 27 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -40,6 +40,8 @@ rast.wsr.post <- rast(paste0(dir.rast, "veg_pred/RF/wsr_post_new.tif"))
 
 # topography
 rast.twi <-  rast(paste0(dir.rast, "Topography/twi_10.tif"))
+rast.slope <-  rast(paste0(dir.rast, "Topography/dtm_slope_deg_10.tif"))
+rast.sri <-  rast(paste0(dir.rast, "Topography/sri_10.tif"))
 rast.vrm <-  rast(paste0(dir.rast, "Topography/vrmL_10.tif"))
 
 # 30 m canopy cover
@@ -199,7 +201,13 @@ plot(rast.min.dists)
 writeRaster(rast.min.dists, "data_raster/unit_prox.tif")
 
 # ______________________________________________________________________________
-# 5. Resample as needed ----
+# 5. Clamp as needed ----
+# ______________________________________________________________________________
+
+rast.sri <- clamp(rast.sri, lower = -1)
+
+# ______________________________________________________________________________
+# 6. Resample as needed ----
 
 # our target extent:
 ext(rast.cover.pre)
@@ -212,6 +220,8 @@ rast.all <- c(
   
   # conditions
   resample(rast.twi, rast.cover.pre),
+  resample(rast.slope, rast.cover.pre),
+  resample(rast.sri, rast.cover.pre),
   resample(rast.vrm, rast.cover.pre),
   resample(rast.wsr.pre, rast.cover.pre),
   resample(rast.wsr.post, rast.cover.pre),
@@ -232,7 +242,7 @@ rast.all <- c(
 # change names
 names(rast.all) <- c(
   
-  "twi", "vrm",
+  "twi", "slope", "sri", "vrm",
   "wsr.pre", "wsr.post",
   "stem.pre", "stem.post", 
   "vo.pre", "vo.post", 

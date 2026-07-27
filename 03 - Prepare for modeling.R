@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 27 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -66,7 +66,7 @@ prep_1 <- function (x) {
     ) |>
     
     # drop NAs
-    drop_na(c(cc, twi, vrm,
+    drop_na(c(cc, twi, slope, sri, vrm,
               stem, vo, ch, dEdge)) |>
     
     # case weights
@@ -85,9 +85,9 @@ prep_1 <- function (x) {
       akde,
       
       # CONDITIONS
-      cc, twi, vrm, wsr,
+      cc, twi, slope, sri, vrm, wsr,
       
-      # LOCAL
+      # FOCAL
       stem, vo, ch, dEdge
       
     )
@@ -122,6 +122,8 @@ transform_covs <- function (x) {
     # squared
     mutate(cc2 = cc^2,
            twi2 = twi^2,
+           slope2 = slope^2,
+           sri2 = sri^2,
            vrm2 = vrm^2)
   
   return(x.1)
