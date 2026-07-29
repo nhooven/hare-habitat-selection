@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 28 Jul 2026
 # COMPLETED: 28 Jul 2026
-# LAST MODIFIED: 28 Jul 2026
+# LAST MODIFIED: 29 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -252,7 +252,7 @@ process_RIU <- function (.RIU, .season) {
   if (.season == "off") {
     
     .mean.sd <- mean.sd.off
-    .fr <- off.fr
+    .fr <- off.fr.data
     
     # standardize
     .RIU.1 <- .RIU |>
@@ -279,7 +279,7 @@ process_RIU <- function (.RIU, .season) {
   } else {
     
     .mean.sd <- mean.sd.on
-    .fr <- on.fr
+    .fr <- on.fr.data
     
     # standardize
     .RIU.1 <- .RIU |>
@@ -388,8 +388,8 @@ ggplot(data = off.RIU.2) +
   
   coord_cartesian(ylim = c(0.22, 4)) +
   
-  scale_color_manual(values = c("gray65", "green4", "green4")) +
-  scale_fill_manual(values = c("gray65", "green4", "green4")) +
+  scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
+  scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> off.vo.plot
 
 # on - stem
@@ -427,8 +427,8 @@ ggplot(data = on.RIU.2) +
   
   coord_cartesian(ylim = c(0.22, 4)) +
   
-  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
-  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
+  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
+  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> on.stem.plot
 
 # ______________________________________________________________________________
@@ -467,8 +467,8 @@ ggplot(data = off.RIU.2) +
   coord_cartesian(ylim = c(0.22, 4),
                   xlim = c(1, 33)) +
   
-  scale_color_manual(values = c("gray65", "green4", "green4")) +
-  scale_fill_manual(values = c("gray65", "green4", "green4")) +
+  scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
+  scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> off.ch.plot
 
 # on - ch
@@ -500,14 +500,12 @@ ggplot(data = on.RIU.2) +
   # axis titles
   xlab("Canopy height (m)") +
   
-  scale_y_continuous(limits = c(0, 15)) +   # ensure that no values are dropped
-  
   # axis limits
   coord_cartesian(ylim = c(0.22, 4),
                   xlim = c(1, 33)) +
   
-  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
-  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
+  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
+  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> on.ch.plot
 
 # ______________________________________________________________________________
@@ -546,8 +544,8 @@ ggplot(data = off.RIU.2) +
   
   coord_cartesian(ylim = c(0.22, 4)) +
   
-  scale_color_manual(values = c("gray65", "green4", "green4")) +
-  scale_fill_manual(values = c("gray65", "green4", "green4")) +
+  scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
+  scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> off.cc.plot
 
 # on
@@ -583,8 +581,8 @@ ggplot(data = on.RIU.2) +
   
   coord_cartesian(ylim = c(0.22, 4)) +
   
-  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
-  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
+  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
+  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> on.cc.plot
 
 # ______________________________________________________________________________
@@ -620,8 +618,8 @@ ggplot(data = off.RIU.2) +
   coord_cartesian(ylim = c(0.22, 4),
                   xlim = c(0, 275)) +
   
-  scale_color_manual(values = c("gray65", "green4", "green4")) +
-  scale_fill_manual(values = c("gray65", "green4", "green4")) +
+  scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
+  scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> off.dEdge.plot
 
 # on
@@ -657,8 +655,8 @@ ggplot(data = on.RIU.2) +
   coord_cartesian(ylim = c(0.22, 4),
                   xlim = c(0, 275)) +
   
-  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
-  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue3")) +
+  scale_color_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
+  scale_fill_manual(values = c("gray65", "dodgerblue3", "dodgerblue4")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) -> on.dEdge.plot
 
 # ______________________________________________________________________________
@@ -673,6 +671,6 @@ on.plots <- plot_grid(on.stem.plot, on.ch.plot, on.cc.plot, on.dEdge.plot,
 
 plot_grid(off.plots, on.plots, nrow = 2)
 
-# 817 x 443
+# 837 x 443
 
 # NEXT: TWI and VRM plots?
