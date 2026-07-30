@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 May 2026
 # COMPLETED: 11 Jun 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 30 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -12,8 +12,8 @@
 # ______________________________________________________________________________
 
 library(tidyverse)
-library(hoove)
 library(cowplot)
+library(ggtext)
 
 # ______________________________________________________________________________
 # 2. Read in cleaned model results ----
@@ -191,15 +191,15 @@ both.pop <- bind_rows(
                                      "canopy height",
                                      "canopy cover",
                                      "distance to edge"),
-                   labels = c("wetness",
-                              "wetness (sq)",
-                              "ruggedness",
-                              "ruggedness (sq)",
-                              "visual obstruction",
-                              "stem density",
-                              "canopy height",
-                              "canopy cover",
-                              "distance to edge")),
+                   labels = c("TWI",
+                              expression(TWI^2),
+                              "VRM",
+                              expression(VRM^2),
+                              "VO",
+                              "STEM",
+                              "CH",
+                              "CC",
+                              "dEdge")),
     
     group = factor(group, levels = c("focal", "conditions"))
     
@@ -234,15 +234,15 @@ both.rs <- bind_rows(
     
     group = case_when(
       
-      param %in% c("wetness",
-                   "wetness2",
-                   "ruggedness",
-                   "ruggedness2") ~ "conditions",
       param %in% c("visual obstruction",
                    "stem density",
                    "canopy height",
                    "canopy cover",
-                   "distance to edge") ~ "focal"
+                   "distance to edge") ~ "focal",
+      param %in% c("wetness",
+                   "wetness2",
+                   "ruggedness",
+                   "ruggedness2") ~ "conditions"
       
     )
     
@@ -260,15 +260,15 @@ both.rs <- bind_rows(
                                      "canopy height",
                                      "canopy cover",
                                      "distance to edge"),
-                   labels = c("wetness",
-                              "wetness (sq)",
-                              "ruggedness",
-                              "ruggedness (sq)",
-                              "visual obstruction",
-                              "stem density",
-                              "canopy height",
-                              "canopy cover",
-                              "distance to edge")),
+                   labels = c("TWI",
+                              expression(TWI^2),
+                              "VRM",
+                              expression(VRM^2),
+                              "VO",
+                              "STEM",
+                              "CH",
+                              "CC",
+                              "dEdge")),
     
     group = factor(group, levels = c("focal", "conditions"))
     
@@ -286,7 +286,7 @@ ggplot() +
              scales = "free_y",
              space = "free_y",
              nrow = 2,
-             strip.position = "right") +      
+             strip.position = "top") +      
   
   # vertical line
   geom_vline(xintercept = 0,
@@ -297,8 +297,10 @@ ggplot() +
              aes(x = mean,
                  y = param,
                  color = season,
-                 group = season),
-             size = 2,  
+                 fill = season,
+                 group = season,
+                 shape = season,
+                 size = season),
              position = position_dodge(width = 0.75),
              alpha = 0.1) +
   
@@ -309,6 +311,8 @@ ggplot() +
                     xmax = upp,
                     y = param,
                     group = season),
+                color = "black",
+                alpha = 0.5,
                 position = position_dodge(width = 0.75),
                 width = 0,
                 linewidth = 1) +
@@ -317,41 +321,71 @@ ggplot() +
              aes(x = mean,
                  y = param,
                  group = season,
-                 fill = season),
-             size = 1.4,   # slightly smaller
-             shape = 23,
-             color = "white",
+                 fill = season,
+                 shape = season,
+                 size = season),
+             color = "black",
+             stroke = 0.7,
              position = position_dodge(width = 0.75)) +
   
   # theme arguments
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
+        panel.spacing = unit(0.05, "cm"),
         
-        legend.position = c(0.86, 0.15),
+        panel.border = element_blank(),
+        axis.line = element_line(),
+        
+        legend.position = c(0.88, 0.12),
         legend.background = element_rect(fill = "white",
                                          color = "gray"),
         legend.title = element_blank(),
-        legend.margin = margin(1, 10, 1, 0.5),  # TRBL
+        legend.margin = margin(1, 5, 1, 0.5),  # TRBL
+        legend.key.spacing = unit(0.0002, "cm"),
+        legend.text = element_text(size = 7,
+                                   vjust = 0.6),
+        
         axis.title.y = element_blank(),
         axis.text = element_text(color = "black",
                                  size = 8),
-        strip.text = element_text(hjust = 0),
-        strip.background = element_rect(color = NA)) +
+        axis.text.y = element_markdown(),             # ggtext workaround
+        
+        strip.background = element_blank(),
+        strip.text = element_text(hjust = 1,
+                                  color = "gray25",
+                                  face = "italic")) +
   
   # legend guide
   guides(color = guide_legend(override.aes = list(size = 2.5))) +
   
   # axis range
-  coord_cartesian(xlim = c(-1.2, 1.2)) +
+  coord_cartesian(xlim = c(-1.1, 1.1)) +
   
   # labels
-  xlab("Selection coefficient") +
+  xlab(expression(beta)) +
   
-  # colors
+  # colors and shapes
   scale_color_manual(values = c("green4", "dodgerblue2")) +
   scale_fill_manual(values = c("green4", "dodgerblue2")) +
+  scale_shape_manual(values = c(21, 23)) +
+  scale_size_manual(values = c(2, 1.7)) +
   
-  scale_y_discrete(limits = rev)
-
-# 484 x 315
+  scale_y_discrete(limits = rev,
+                   
+                   # ggtext workaround
+                   labels = c(   
+                     
+                     "TWI^2" = "TWI<sup>2</sup>",
+                     "VRM^2" = "VRM<sup>2</sup>"
+                     
+                   )) +
+  
+  # manual axis line for top panel
+  geom_hline(data = data.frame(yintercept = 0.35,
+                               group = factor("focal")),
+             aes(group = group,
+                 yintercept = yintercept),
+             linewidth = 0.9)
+  
+# 439 x 389
