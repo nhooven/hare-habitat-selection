@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 28 Jul 2026
 # COMPLETED: 28 Jul 2026
-# LAST MODIFIED: 29 Jul 2026
+# LAST MODIFIED: 31 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -650,7 +650,7 @@ ggplot(data = on.RIU.2) +
         axis.title.x = element_text(size = 9)) +
   
   # axis titles
-  xlab("Distance from mature edge (m)") +
+  xlab("Distance to mature edge (m)") +
 
   coord_cartesian(ylim = c(0.22, 4),
                   xlim = c(0, 275)) +
