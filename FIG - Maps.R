@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 30 Jul 2026
-# COMPLETED: 
-# LAST MODIFIED: 30 Jul 2026
+# COMPLETED: 31 Jul 2026
+# LAST MODIFIED: 31 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -17,6 +17,7 @@ library(mgcv)
 library(terra)
 library(tidyterra)
 library(patchwork)
+library(cowplot)
 
 # ______________________________________________________________________________
 # 2. Read in models and data ----
@@ -102,7 +103,16 @@ prep_rast <- function (.site,
   # this differs from the script 08d function
   # we want all the site-specific maps to have the same dimensions
   # we'll need to tune this so it fits the largest on
-  focal.bbox <- st_buffer(focal.site.cent, dist = 525) |>
+  .dist <- case_when(
+    
+    substr(.site, 1, 1) == "1" ~ 450,
+    substr(.site, 1, 1) == "2" ~ 585,
+    substr(.site, 1, 1) == "3" ~ 525,
+    substr(.site, 1, 1) == "4" ~ 575
+    
+  )
+  
+  focal.bbox <- st_buffer(focal.site.cent, dist = .dist) |>
     
     # create a bbox
     spatialEco::bbox_poly()
@@ -490,16 +500,95 @@ on.1C <- pred_hsf("1C", "on", "pre")
 
 # ______________________________________________________________________________
 # 8. Build maps ----
+# ______________________________________________________________________________
+# 8a. Legend limits ----
+# ______________________________________________________________________________
 
-# relocations 
-pts <- readRDS("D:/hare_project/data_analysis/General/hare-gps-processing-new/data_cleaned/use_background.rds") |>
-  
-  filter(case == 1) |>
-  
-  st_as_sf(coords = c("x", "y"),
-           crs = "epsg:32611")
+# global limits so all plots have the same legend
+unit.names <- c("1A", "1B", "1C", 
+                "2A", "2B", "2C",
+                "3A", "3B", "3C",
+                "4A", "4B", "4C")
 
-# map theme
+# intensity
+all.range <- data.frame()
+
+for (i in unit.names) {
+  
+  for (j in c("off", "on")) {
+    
+    for (k in c("pre", "post")) {
+      
+      suppressWarnings(pred.ijk <- pred_hsf(i, j, k))
+      
+      range.ijk <- data.frame("site" = i,
+                              "season" = j,
+                              "year" = k,
+                              "min" = min(values(pred.ijk)),
+                              "max" = max(values(pred.ijk)))
+      
+      # bind in
+      all.range <- rbind(all.range, range.ijk)
+      
+    }
+    
+  }
+
+}
+
+all.range |>
+  
+  group_by(season, year) |>
+  
+  summarize(min = min(min),
+            max = max(max))
+
+# let's just use the same range for everything
+global.range <- c(0, 4.5)
+global.breaks <- c(1:4)
+
+# log change
+change.range <- data.frame()
+
+for (i in 1:4) {
+  
+  for (j in c("off", "on")) {
+    
+    suppressWarnings(change.ijA <- log(pred_hsf(paste0(i, "A"), j, "post")) - 
+                       log(pred_hsf(paste0(i, "A"), j, "pre")))
+    suppressWarnings(change.ijB <- log(pred_hsf(paste0(i, "B"), j, "post")) - 
+                       log(pred_hsf(paste0(i, "B"), j, "pre")))
+    
+    range.ijA <- data.frame("site" = paste0(i, "A"),
+                            "season" = j,
+                            "min" = min(values(change.ijA)),
+                            "max" = max(values(change.ijA)))
+    
+    range.ijB <- data.frame("site" = paste0(i, "B"),
+                            "season" = j,
+                            "min" = min(values(change.ijB)),
+                            "max" = max(values(change.ijB)))
+    
+    change.range <- rbind(change.range, rbind(range.ijA, range.ijB))
+    
+  }
+  
+}
+
+change.range |>
+  
+  group_by(season) |>
+  
+  summarize(min = min(min),
+            max = max(max))
+
+global.range.change <- c(-1.7, 1.15)
+global.breaks.change <- c(-1.5, -1.0, -0.5, 0, 0.5, 1.0)
+
+# ______________________________________________________________________________
+# 8b. Map theme ----
+# ______________________________________________________________________________
+
 theme_hsf <- function () {
   
   theme_bw() +
@@ -513,18 +602,23 @@ theme_hsf <- function () {
   
 }
 
-# functions
+# ______________________________________________________________________________
+# 8c. Map functions ----
+# ______________________________________________________________________________
+
 map_unthinned <- function (.unit, .season) {
   
-  # choose correct raster
-  if (.unit == "1C" & .season == "off") { .rast <- off.1C }
-  if (.unit == "1C" & .season == "on") { .rast <- on.1C }
-  if (.unit == "2C" & .season == "off") { .rast <- off.2C }
-  if (.unit == "2C" & .season == "on") { .rast <- on.2C }
-  if (.unit == "3C" & .season == "off") { .rast <- off.3C }
-  if (.unit == "3C" & .season == "on") { .rast <- on.3C }
-  if (.unit == "4C" & .season == "off") { .rast <- off.4C }
-  if (.unit == "4C" & .season == "on") { .rast <- on.4C }
+  # prep rasters
+  suppressWarnings(
+    
+    .rast <- pred_hsf(.site = .unit, .season = .season, .year = "pre")
+  
+    )
+  
+  # breaks
+  # different for off/on
+  breaks.off <- c(1, 2, 3)
+  breaks.on <- c(1, 2, 3, 4)
   
   # subset unit
   unit.poly <- units |> filter(name == .unit)
@@ -545,55 +639,49 @@ map_unthinned <- function (.unit, .season) {
     # correct viridis fill
     scale_fill_viridis_c(option = ifelse(.season == "off",
                                          "inferno",
-                                         "mako"))
+                                         "mako"),
+                         limits = global.range,
+                         breaks = global.breaks) +
+    
+    theme(legend.key.height = unit(0.3, "cm"),
+          legend.key.width = unit(0.2, "cm"),
+          legend.text = element_text(size = 6,
+                                     margin = margin(l = 3, "cm")),
+          legend.box.spacing = unit(-0.2, "cm"),
+          
+          plot.margin = unit(c(0.02, 0.02, 0.02, 0.02), "cm"))
   
 }
 
 map_thinned <- function (.unit, .season) {
   
-  # choose correct raster
-  if (.unit == "1A" & .season == "off") { 
-    
-    .rast1 <- off.pre.1A
-    .rast2 <- off.post.1A
-    .rast3 <- off.1A.change 
-    
-    }
+  suppressWarnings( {
   
-  if (.unit == "1A" & .season == "on") { 
-    
-    .rast1 <- on.pre.1A
-    .rast2 <- on.post.1A 
-    .rast3 <- on.1A.change 
-    
+  # predictive rasters
+  .rast1 <- pred_hsf(.site = .unit, .season = .season, .year = "pre")
+  .rast2 <- pred_hsf(.site = .unit, .season = .season, .year = "post")
+  
   }
   
-  if (.unit == "1B" & .season == "off") { 
-    
-    .rast1 <- off.pre.1B
-    .rast2 <- off.post.1B
-    .rast3 <- off.1B.change 
-    
-  }
+  )
   
-  if (.unit == "1B" & .season == "on") { 
-    
-    .rast1 <- on.pre.1B
-    .rast2 <- on.post.1B 
-    .rast3 <- on.1B.change
-    
-  }
-  
-  # add other units as needed
+  # log change
+  .rast3 <- log(.rast2) - log(.rast1)
   
   # stack intensity rasters
   rast.int <- c(.rast1, .rast2)
   
   # names
-  names(rast.int) <- c("pre", "post")
+  names(rast.int) <- c("PRE", "POST")
 
   # subset unit
   unit.poly <- units |> filter(name == .unit)
+  
+  # breaks
+  # different for off/on
+  breaks.off <- c(1, 2, 3)
+  breaks.on <- c(1, 2, 3, 4)
+  breaks.change <- c(-1, -0.5, 0, 0.5, 1.0)
   
   # pre-post plot
   ggplot() +
@@ -613,17 +701,27 @@ map_thinned <- function (.unit, .season) {
     # correct viridis fill
     scale_fill_viridis_c(option = ifelse(.season == "off",
                                          "inferno",
-                                         "mako")) +
+                                         "mako"),
+                         limits = global.range,
+                         breaks = global.breaks) +
     
     labs(fill = "intensity") +
     
-    # legend position
+    # legend args
     theme(legend.position = "bottom",
-          legend.title.position = "top") +
+          legend.title.position = "top",
+          legend.key.height = unit(0.2, "cm"),   # horizontal legend
+          legend.key.width = unit(0.3, "cm"),
+          legend.text = element_text(size = 6,
+                                     margin = margin(t = 3, "cm")),
+          legend.box.spacing = unit(0.02, "cm"),
+          
+          plot.margin = unit(c(0.02, 0.02, -0.5, 0.1), "cm"),
+          
+          strip.text = element_text(size = 7)) +
     
     # strips
-    theme(strip.background = element_blank(),
-          strip.text = element_text(hjust = 0.05)) -> pp.plot
+    theme(strip.background = element_blank()) -> pp.plot
   
   # log-change plot
   ggplot() +
@@ -639,30 +737,80 @@ map_thinned <- function (.unit, .season) {
             color = "black") +
     
     # diverging palette (continuous from colorbrewer)
-    scale_fill_gradient2(low = "#8c510a",
+    scale_fill_gradient2(low = "#543005",
                          mid = "white",
-                         high = "#01665e") +
+                         high = "#003c30",
+                         midpoint = 0,
+                         limits = global.range.change,
+                         breaks = global.breaks.change) +
     
-    # title
-    theme(legend.position = "bottom") -> lc.plot
+    theme(legend.position = "right",
+          legend.key.height = unit(0.3, "cm"),
+          legend.key.width = unit(0.2, "cm"),
+          legend.text = element_text(size = 5,
+                                     margin = margin(l = 3, "cm")),
+          legend.box.spacing = unit(0.0005, "cm"),
+          
+          plot.margin = unit(c(0.02, 0.02, -0.22, 0.35), "cm")) -> lc.plot
   
   # patchwork plots together
-  pp.plot + lc.plot + plot_layout(widths = c(2, 1))
+  #pp.plot + lc.plot + plot_layout(widths = c(2, 1))
+  
+  # plot_grid
+  plot_grid(pp.plot, lc.plot, rel_widths = c(1.25, 1))
   
 }
 
 # ______________________________________________________________________________
-# 8a. W Rabbit ----
+# 9. Plot grids ----
 # ______________________________________________________________________________
 
-# 1C
-map_unthinned("1C", "off")
-map_unthinned("1C", "on")
+# WR
+plot_grid(
+  
+  plot_grid(map_unthinned("1C", "off"), map_unthinned("1C", "on"), nrow = 1),
+  plot_grid(map_thinned("1A", "off"), map_thinned("1A", "on"), nrow = 1),
+  plot_grid(map_thinned("1B", "off"), map_thinned("1B", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 2, 2)
+  
+)
 
-# 1A
-map_thinned("1A", "off")
-map_thinned("1A", "on")
+# CB
+plot_grid(
+  
+  plot_grid(map_unthinned("2C", "off"), map_unthinned("2C", "on"), nrow = 1),
+  plot_grid(map_thinned("2B", "off"), map_thinned("2B", "on"), nrow = 1),
+  plot_grid(map_thinned("2A", "off"), map_thinned("2A", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 2, 2)
+  
+)
 
-# 1B
-map_thinned("1B", "off")
-map_thinned("1B", "on")
+# BB
+plot_grid(
+  
+  plot_grid(map_unthinned("3C", "off"), map_unthinned("3C", "on"), nrow = 1),
+  plot_grid(map_thinned("3B", "off"), map_thinned("3B", "on"), nrow = 1),
+  plot_grid(map_thinned("3A", "off"), map_thinned("3A", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 2, 2)
+  
+)
+
+# CH
+plot_grid(
+  
+  plot_grid(map_unthinned("4C", "off"), map_unthinned("4C", "on"), nrow = 1),
+  plot_grid(map_thinned("4A", "off"), map_thinned("4A", "on"), nrow = 1),
+  plot_grid(map_thinned("4B", "off"), map_thinned("4B", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 2, 2)
+  
+)
+
+# NEXT: standard deviations
