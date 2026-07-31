@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 Jul 2026
 # COMPLETED: 
-# LAST MODIFIED: 28 Jul 2026
+# LAST MODIFIED: 31 Jul 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -54,6 +54,8 @@ pts <- readRDS("D:/hare_project/data_analysis/General/hare-gps-processing-new/da
 
 vo.pre <- rast(paste0(spat.dir, "Rasters/veg_pred/RF/vo_pre_new.tif"))
 vo.post <- rast(paste0(spat.dir, "Rasters/veg_pred/RF/vo_post_new.tif"))
+
+rast.all <- rast(paste0(getwd(), "/data_raster/rast_all.tif"))
 
 # ______________________________________________________________________________
 # 3. Coordinate reference systems ----
@@ -148,13 +150,13 @@ ggplot() +
           color = "white") +
   
   # relocations
-  geom_path(data = pts.1,
-            aes(x = x,
-                y = y,
-                group = track_season_post),
-          color = "black",
-          alpha = 0.5,
-          linewidth = 0.2) +
+  #geom_path(data = pts.1,
+   #         aes(x = x,
+    #            y = y,
+     #           group = track_season_post),
+      #    color = "black",
+       #   alpha = 0.5,
+        # linewidth = 0.2) +
   
   # colors
   scale_fill_viridis_c() +
@@ -179,18 +181,19 @@ ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         
+        legend.position = "none",
         # legend
-        legend.position = "inside",
-        legend.position.inside = c(0.83, 0.15),
-        legend.direction = "horizontal",
-        legend.background = element_rect(fill = NA),
-        legend.frame = element_rect(color = "white"),
-        legend.text = element_text(color = "white",
-                                   face = "bold"),
-        legend.text.position = "bottom",
-        legend.title = element_text(color = "white",
-                                    hjust = 0.5),
-        legend.title.position = "top",
+        #legend.position = "inside",
+        #legend.position.inside = c(0.83, 0.15),
+        #legend.direction = "horizontal",
+        #legend.background = element_rect(fill = NA),
+        #legend.frame = element_rect(color = "white"),
+        #legend.text = element_text(color = "white",
+        #                           face = "bold"),
+        #legend.text.position = "bottom",
+        #legend.title = element_text(color = "white",
+        #                            hjust = 0.5),
+        #legend.title.position = "top",
         
         axis.title = element_blank()) -> map.base
 
@@ -325,8 +328,149 @@ ggplot() +
   scale_fill_viridis_c() -> map.jsm
 
 # ______________________________________________________________________________
-# 6e. Plot together ----
+# 6f. Covariates ----
+
+# I want to stack these so the stand variables are 2 x 2,
+# dEdge is right below it and centered,
+# and the conditions are below that, 1 x 2
+
+# they should all be standardized and the legend should be shared
+# and reflect the full range 
+
+# we'll use the "pre" veg rasters for simplicity
+
 # ______________________________________________________________________________
+
+# crop to bbox
+rast.all.crop <- crop(rast.all, wr.bbox)
+
+# standardize and stack rasters 
+rast.focal.1 <- c(scale(rast.all.crop$vo.pre),
+                  scale(rast.all.crop$stem.pre),
+                  scale(rast.all.crop$ch.pre),
+                  scale(rast.all.crop$cc.pre))
+
+rast.focal.2 <- c(scale(rast.all.crop$dEdge))
+
+rast.cond <- c(scale(rast.all.crop$twi),
+               scale(rast.all.crop$vrm))
+
+# names
+names(rast.focal.1) <- c("VO", "STEM", "CH", "CC")
+names(rast.focal.2) <- c("dEdge")
+names(rast.cond) <- c("TWI", "VRM")
+
+# determine the appropriate range (quantiles)
+min(quantile(values(rast.focal.1), 0.01), 
+    quantile(values(rast.focal.2), 0.01), 
+    quantile(values(rast.cond), 0.01))   # -2.229621
+
+max(quantile(values(rast.focal.1), 0.99), 
+    quantile(values(rast.focal.2), 0.99), 
+    quantile(values(rast.cond), 0.99))    # 3.806747
+
+# clamp
+rast.focal.1 <- clamp(rast.focal.1, -2.229621, 3.806747)
+rast.focal.2 <- clamp(rast.focal.2, -2.229621, 3.806747)
+rast.cond <- clamp(rast.cond, -2.229621, 3.806747)
+
+# plots
+ggplot() +
+  
+  theme_bw() +
+  
+  facet_wrap(~ lyr, 
+             nrow = 2,
+             strip.position = "left") +
+  
+  # basemap
+  geom_spatraster(data = rast.focal.1) +
+  
+  coord_sf(expand = F) +
+  
+  # theme
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        
+        legend.position = "top",
+        legend.key.width = unit(0.45, "cm"),
+        legend.key.height = unit(0.2, "cm"),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7),
+        
+        strip.background = element_rect(color = NA)) +
+  
+  # colors
+  scale_fill_viridis_c(name = "SD") -> plot.focal.1
+
+# focal 2
+ggplot() +
+  
+  theme_bw() +
+  
+  facet_wrap(~ lyr, 
+             nrow = 1,
+             strip.position = "left") +
+  
+  # basemap
+  geom_spatraster(data = rast.focal.2) +
+  
+  coord_sf(expand = F) +
+  
+  # theme
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none",
+        strip.background = element_rect(color = NA)) +
+  
+  # colors
+  scale_fill_viridis_c() -> plot.focal.2
+
+# cond
+ggplot() +
+  
+  theme_bw() +
+  
+  facet_wrap(~ lyr, 
+             nrow = 1,
+             strip.position = "left") +
+  
+  # basemap
+  geom_spatraster(data = rast.cond) +
+  
+  coord_sf(expand = F) +
+  
+  # theme
+  theme(panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "none",
+        strip.background = element_rect(color = NA)) +
+  
+  # colors
+  scale_fill_viridis_c() -> plot.cond
+
+# ______________________________________________________________________________
+# 7. Plot together ----
+# ______________________________________________________________________________
+
+maps.covar <- plot_grid(plot.focal.1,
+                        plot.focal.2,
+                        plot.cond,
+                        nrow = 3,
+                        rel_heights = c(2.5, 1, 1))
+
+maps.covar
+
+
+
+
+
 
 maps.cover <- plot_grid(map.dh, map.msm, map.om, map.jsm, 
                         ncol = 1,
