@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 Jul 2026
 # COMPLETED: 
-# LAST MODIFIED: 31 Jul 2026
+# LAST MODIFIED: 03 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -137,17 +137,19 @@ ggplot() +
   geom_sf(data = wr.units,
           fill = NA,
           color = "white",
-          linewidth = 0.75) +
+          linewidth = 0.5) +
   
   # piles
   geom_sf(data = wr.piles,
           color = "white",
-          shape = 3) +
+          shape = 3,
+          size = 0.9) +
   
   # patches
   geom_sf(data = wr.ret,
           fill = NA,
-          color = "white") +
+          color = "white",
+          linewidth = 0.4) +
   
   # relocations
   #geom_path(data = pts.1,
@@ -166,14 +168,14 @@ ggplot() +
   
   # scale bar
   annotation_scale(aes(style = "ticks"),
-                   location = "bl",
+                   location = "br",
                    line_width = 0.5,
                    height = unit(0.1, "cm"),
                    text_cex = 0.6,
                    pad_x = unit(0.7, "cm"),
-                   pad_y = unit(0.2, "cm"),
-                   line_col = "black",
-                   text_col = "black") +
+                   pad_y = unit(0.5, "cm"),
+                   line_col = "white",
+                   text_col = "white") +
   
   # theme
   theme(panel.grid = element_blank(),
@@ -398,9 +400,11 @@ ggplot() +
         legend.key.width = unit(0.45, "cm"),
         legend.key.height = unit(0.2, "cm"),
         legend.title = element_text(size = 8),
+        legend.title.position = "top",
         legend.text = element_text(size = 7),
         
-        strip.background = element_rect(color = NA)) +
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(size = 7)) +
   
   # colors
   scale_fill_viridis_c(name = "SD") -> plot.focal.1
@@ -425,7 +429,8 @@ ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none",
-        strip.background = element_rect(color = NA)) +
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(size = 7)) +
   
   # colors
   scale_fill_viridis_c() -> plot.focal.2
@@ -450,7 +455,8 @@ ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none",
-        strip.background = element_rect(color = NA)) +
+        strip.background = element_rect(color = NA),
+        strip.text = element_text(size = 7)) +
   
   # colors
   scale_fill_viridis_c() -> plot.cond
@@ -463,10 +469,10 @@ maps.covar <- plot_grid(plot.focal.1,
                         plot.focal.2,
                         plot.cond,
                         nrow = 3,
-                        rel_heights = c(2.5, 1, 1))
+                        rel_heights = c(2.75, 0.7, 1))
 
-maps.covar
-
+# both big map and covars
+plot_grid(map.base, maps.covar, ncol = 2, rel_widths = c(1.75, 1))
 
 
 
