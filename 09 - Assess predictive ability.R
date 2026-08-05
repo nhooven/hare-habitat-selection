@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 09 Jun 2026
 # COMPLETED: 23 Jul 2026
-# LAST MODIFIED: 23 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # here we want to look at overall predictive ability
@@ -692,6 +692,9 @@ ggplot(data = indiv.corr.id) +
   
   scale_fill_manual(values = c("green4", "dodgerblue2")) +
   
+  scale_x_continuous(breaks = c(-0.75, -0.25, 0.25, 0.75)) +
+  scale_y_continuous(breaks = c(2, 6, 10, 14)) +
+  
   xlab(expression(rho)) +
   ylab("Individual tracks")
 
@@ -724,8 +727,10 @@ ggplot(data = indiv.corr.id |> pivot_wider(names_from = model,
   
   scale_color_manual(values = c("green4", "dodgerblue2")) +
   
-  coord_cartesian(xlim = c(-0.1, 1),
-                  ylim = c(-0.1, 1)) +
+  scale_x_continuous(breaks = c(-0.75, -0.25, 0.25, 0.75)) +
+  scale_y_continuous(breaks = c(-0.75, -0.25, 0.25, 0.75)) +
+  coord_cartesian(xlim = c(-1, 1),
+                  ylim = c(-1, 1)) +
   
   xlab("Base correlation") +
   ylab("Functional correlation")
