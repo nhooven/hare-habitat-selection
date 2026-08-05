@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 05 Jun 2026
 # COMPLETED: 20 Jul 2026
-# LAST MODIFIED: 20 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -177,11 +177,11 @@ write.table(aic_tab(models.ch), "clipboard", sep = "\t")
 
 models.cc <- fr_model("cc", "a.vo")
 
-aic_tab(models.cc)  # M3
+aic_tab(models.cc)  # M4
 
-summary(models.cc[[3]])
-plot(models.cc[[3]])
-appraise(models.cc[[3]])
+summary(models.cc[[4]])
+plot(models.cc[[4]])
+appraise(models.cc[[4]])
 
 write.table(aic_tab(models.cc), "clipboard", sep = "\t")
 
@@ -204,5 +204,5 @@ write.table(aic_tab(models.dEdge), "clipboard", sep = "\t")
 # ______________________________________________________________________________
 
 saveRDS(models.vo[[3]], "model_results/fr_models/off_vo.rds")
-saveRDS(models.cc[[3]], "model_results/fr_models/off_cc.rds")
+saveRDS(models.cc[[4]], "model_results/fr_models/off_cc.rds")
 saveRDS(models.dEdge[[2]], "model_results/fr_models/off_dEdge.rds")

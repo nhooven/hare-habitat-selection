@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 28 Jul 2026
 # COMPLETED: 29 Jul 2026
-# LAST MODIFIED: 29 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -211,10 +211,13 @@ ggplot(data = off.vo.rss.newdata) +
   theme(axis.text = element_text(color = "black"),
         legend.title = element_blank(),
         
-        legend.position = c(0.8, 0.29),
+        legend.position = c(0.8, 0.26),
         legend.key.size = unit(0.4, "cm"),
         legend.text = element_text(size = 5),
         legend.background = element_rect(fill = NA)) +
+  
+  # legend linewidths
+  guides(color = guide_legend(override.aes = list(linewidth = 0.4))) +
   
   scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
@@ -226,7 +229,7 @@ ggplot(data = off.vo.rss.newdata) +
 # ______________________________________________________________________________
 # 4. OFF - Canopy cover ----
 
-# M3
+# M4
 
 # ______________________________________________________________________________
 # 4a. FR predictions ----
@@ -236,8 +239,15 @@ ggplot(data = off.vo.rss.newdata) +
 off.cc.data <- off.data |> filter(param == "cc")
 
 # predictions
+# availability sequence
+off.cc.avail <- seq(quantile(off.cc.data$a.vo, prob = 0.05, na.rm = T), 
+                    quantile(off.cc.data$a.vo, prob = 0.95, na.rm = T), 
+                    length.out = 100)
+
 # newdata
-off.cc.fr.newdata <- data.frame(TRT = c("UNTHIN", "RET", "PIL"))
+off.cc.fr.newdata <- data.frame(avail = rep(off.cc.avail, 3),
+                                  TRT = rep(c("UNTHIN", "RET", "PIL"),
+                                            each = length(off.cc.avail)))
 
 # predict
 off.cc.fr.pred <- predict(off.cc, 
@@ -264,8 +274,8 @@ ggplot() +
   
   # population-level effect
   geom_rect(data = M.off |> filter(param == "cc"),
-            aes(xmin = 0.4,
-                xmax = 3.6,
+            aes(xmin = 0.48,
+                xmax = 0.8,
                 ymax = upp,
                 ymin = low),
             fill = "gray97") +
@@ -275,30 +285,39 @@ ggplot() +
              color = "darkgray") +
   
   # treatment-specific predictions
-  geom_errorbar(data = off.cc.fr.forPlot,
-                aes(x = TRT,
-                    y = pred,
-                    ymin = l90,
-                    ymax = u90,
-                    color = TRT),
-                width = 0,
-                linewidth = 1.2) +
+  geom_ribbon(data = off.cc.fr.forPlot,
+              aes(x = avail,
+                  y = pred,
+                  fill = TRT,
+                  ymin = l90,
+                  ymax = u90),
+              alpha = 0.25) +
   
-  geom_point(data = off.cc.fr.forPlot,
-             aes(x = TRT,
-                 y = pred,
-                 fill = TRT),
-             shape = 21,
-             color = "black",
-             size = 2) +
+  geom_line(data = off.cc.fr.forPlot,
+            aes(x = avail,
+                y = pred,
+                color = TRT,
+                linetype = TRT),
+            linewidth = 1.2) +
   
-  theme(legend.position = "none",
+  theme(legend.position = c(0.5, 0.7),
+        legend.background = element_rect(fill = NA),
+        legend.title = element_blank(),
+        legend.key.size = unit(0.4, "cm"),
+        legend.text = element_text(size = 6),
+        
         axis.title.y = element_blank()) +
+  
+  # legend linewidths
+  guides(color = guide_legend(override.aes = list(linewidth = 0.4))) +
+  
+  coord_cartesian(xlim = c(0.52, 0.74)) +
   
   scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
+  scale_linetype_manual(values = c("dotted", "solid", "dashed")) +
   
-  xlab("Treatment") +
+  xlab("Mean % visual obstruction") +
   ylab(expression(beta)) -> off.cc.fr.plot
 
 # ______________________________________________________________________________
@@ -309,20 +328,25 @@ ggplot() +
 off.cc.mean.sd <- mean.sd.off |> filter(name == "cc")
 off.cc.mean.sd.trt <- mean.sd.off.trt |> filter(name == "cc")
 
+# understory availability levels (just pull from fr df to join)
+off.cc.avail.levels <- c(off.cc.fr.forPlot$avail[1],
+                           off.cc.fr.forPlot$avail[50],
+                           off.cc.fr.forPlot$avail[100])
+
 # availability ranges
 off.cc.range.trt <- list(seq(off.cc.mean.sd.trt$min[off.cc.mean.sd.trt$TRT == "UNTHIN"], 
-                             off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "UNTHIN"], 
-                             length.out = 100),
-                         seq(off.cc.mean.sd.trt$min[off.cc.mean.sd.trt$TRT == "RET"], 
-                             off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "RET"], 
-                             length.out = 100),
-                         seq(off.cc.mean.sd.trt$min[off.cc.mean.sd.trt$TRT == "PIL"], 
-                             off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "PIL"], 
-                             length.out = 100))
+                               off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "UNTHIN"], 
+                               length.out = 100),
+                           seq(off.cc.mean.sd.trt$min[off.cc.mean.sd.trt$TRT == "RET"], 
+                               off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "RET"], 
+                               length.out = 100),
+                           seq(off.cc.mean.sd.trt$min[off.cc.mean.sd.trt$TRT == "PIL"], 
+                               off.cc.mean.sd.trt$max[off.cc.mean.sd.trt$TRT == "PIL"], 
+                               length.out = 100))
 
 off.cc.range.trt.s <- list((off.cc.range.trt[[1]] - off.cc.mean.sd$mean) / off.cc.mean.sd$sd,
-                           (off.cc.range.trt[[2]] - off.cc.mean.sd$mean) / off.cc.mean.sd$sd,
-                           (off.cc.range.trt[[3]] - off.cc.mean.sd$mean) / off.cc.mean.sd$sd)
+                             (off.cc.range.trt[[2]] - off.cc.mean.sd$mean) / off.cc.mean.sd$sd,
+                             (off.cc.range.trt[[3]] - off.cc.mean.sd$mean) / off.cc.mean.sd$sd)
 
 # RSS prediction
 off.cc.rss.newdata <- bind_rows(
@@ -332,15 +356,26 @@ off.cc.rss.newdata <- bind_rows(
   data.frame(x = off.cc.range.trt.s[[2]],
              TRT = "RET"),
   data.frame(x = off.cc.range.trt.s[[3]],
-             TRT = "PIL"),
+             TRT = "PIL")
   
-) |>
+)
+
+# repeat and add availability levels
+off.cc.rss.newdata.1 <- bind_rows(off.cc.rss.newdata,
+                                    off.cc.rss.newdata,
+                                    off.cc.rss.newdata) |>
   
+  # add availability levels
+  mutate(avail = c(rep(off.cc.avail.levels[1], 300),
+                   rep(off.cc.avail.levels[2], 300),
+                   rep(off.cc.avail.levels[3], 300))) |>
+  
+  # treatment factor
   mutate(TRT = factor(TRT, 
                       levels = c("UNTHIN", "RET", "PIL"),
                       labels = c("U", "R", "P"))) |>
   
-  left_join(off.cc.fr.forPlot |> dplyr::select(TRT, pred, l90, u90)) |>
+  left_join(off.cc.fr.forPlot |> dplyr::select(avail, TRT, pred, l90, u90)) |>
   
   # calculate log RSS
   mutate(rss.est = x * pred,
@@ -350,13 +385,22 @@ off.cc.rss.newdata <- bind_rows(
   # back-transform x
   mutate(x.1 = (x * off.cc.mean.sd$sd) + off.cc.mean.sd$mean) |>
   
+  # availability to sensible factor
+  mutate(avail = factor(avail,
+                        levels = unique(factor(avail)),
+                        labels = c("Mean VO = 0.51",
+                                   "Mean VO = 0.63",
+                                   "Mean VO = 0.75"))) |>
+  
   # keep only relevant columns for plotting
-  dplyr::select(x.1, TRT, rss.est, rss.low, rss.upp)
+  dplyr::select(x.1, TRT, avail, rss.est, rss.low, rss.upp)
 
 # plot
-ggplot(data = off.cc.rss.newdata) +
+ggplot(data = off.cc.rss.newdata.1) +
   
   theme_fr_rss() +
+  
+  facet_wrap(~ avail) +
   
   geom_hline(yintercept = 0,
              linetype = "dashed") +
@@ -376,18 +420,30 @@ ggplot(data = off.cc.rss.newdata) +
   
   theme(panel.grid = element_blank(),
         axis.text = element_text(color = "black"),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
         
         legend.title = element_blank(),
-        legend.position = c(0.8, 0.3),
+        legend.position = c(0.92, 0.27),
+        legend.background = element_rect(fill = NA),
         legend.key.size = unit(0.4, "cm"),
-        legend.text = element_text(size = 5),
-        legend.background = element_rect(fill = NA)) +
+        legend.text = element_text(size = 6)) +
+  
+  # legend linewidths
+  guides(color = guide_legend(override.aes = list(linewidth = 0.4))) +
+  
+  geom_text(aes(x = 8,
+                y = 1.4,
+                label = avail),
+            size = 2,
+            hjust = 0,
+            check_overlap = T) + 
+  
+  scale_x_continuous(breaks = seq(15, 75, 15)) +
   
   scale_color_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_fill_manual(values = c("gray65", "green4", "darkorange3")) +
   scale_linetype_manual(values = c("dotted", "solid", "dashed")) +
-  
-  scale_x_continuous(breaks = seq(15, 75, 15)) +
   
   xlab("Canopy cover (%)") +
   ylab("log(RSS)") -> off.cc.rss.plot
@@ -541,7 +597,7 @@ ggplot(data = off.dEdge.rss.newdata) +
         strip.text = element_blank()) +
   
   geom_text(aes(x = 2,
-                y = -0.82,
+                y = -0.89,
                 label = avail),
             size = 2,
             hjust = 0,
@@ -907,6 +963,9 @@ ggplot(data = on.dEdge.rss.newdata.1) +
         legend.key.size = unit(0.4, "cm"),
         legend.text = element_text(size = 6)) +
   
+  # legend linewidths
+  guides(color = guide_legend(override.aes = list(linewidth = 0.4))) +
+  
   geom_text(aes(x = 2,
                 y = -0.25,
                 label = avail),
@@ -930,7 +989,7 @@ ggplot(data = on.dEdge.rss.newdata.1) +
 plot.design <- c(
   
   area(1, 1, 1, 1), area(1, 2, 1, 2.5),
-  area(2, 1, 2, 1), area(2, 2, 2, 2.5),
+  area(2, 1, 2, 1), area(2, 2, 2, 4.8),
   area(3, 1, 3, 1), area(3, 2, 3, 4.8),
   area(4, 1, 4, 1), area(4, 2, 4, 4.8),
   area(5, 1, 5, 1), area(5, 2, 5, 4.8)
