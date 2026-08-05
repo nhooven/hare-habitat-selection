@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 30 Jul 2026
 # COMPLETED: 31 Jul 2026
-# LAST MODIFIED: 31 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -224,23 +224,23 @@ pred_hsf <- function (.site,
     names(rast.vo)[1] <- "avail"
     
     # FR predictions
-    beta.vo <- predict(object = rast.vo, 
-                       model = off.vo, 
-                       fun = predict.gam, 
-                       na.omit = T,
-                       newdata.guaranteed = TRUE)
+    beta.vo <- terra::predict(object = rast.vo, 
+                              model = off.vo, 
+                              fun = predict.gam, 
+                              na.omit = T,
+                              newdata.guaranteed = TRUE)
     
-    beta.cc <- predict(object = rast.vo, 
-                       model = off.cc, 
-                       fun = predict.gam, 
-                       na.omit = T,
-                       newdata.guaranteed = TRUE)
+    beta.cc <- terra::predict(object = rast.vo, 
+                              model = off.cc, 
+                              fun = predict.gam, 
+                              na.omit = T,
+                              newdata.guaranteed = TRUE)
     
-    beta.dEdge <- predict(object = rast.vo, 
-                          model = off.dEdge, 
-                          fun = predict.gam, 
-                          na.omit = T,
-                          newdata.guaranteed = TRUE)
+    beta.dEdge <- terra::predict(object = rast.vo, 
+                                 model = off.dEdge, 
+                                 fun = predict.gam, 
+                                 na.omit = T,
+                                 newdata.guaranteed = TRUE)
     
     # main coefs
     beta.ch <- hsf$mean[hsf$param == "ch"]
@@ -279,17 +279,17 @@ pred_hsf <- function (.site,
     names(rast.stem)[1] <- "avail"
     
     # FR predictions
-    beta.cc <- predict(object = rast.stem, 
-                       model = on.cc, 
-                       fun = predict.gam,
-                       na.omit = T, 
-                       newdata.guaranteed = TRUE)
+    beta.cc <- terra::predict(object = rast.stem, 
+                              model = on.cc, 
+                              fun = predict.gam,
+                              na.omit = T, 
+                              newdata.guaranteed = TRUE)
     
-    beta.dEdge <- predict(object = rast.stem, 
-                          model = on.dEdge, 
-                          fun = predict.gam,
-                          na.omit = T,
-                          newdata.guaranteed = TRUE)
+    beta.dEdge <- terra::predict(object = rast.stem, 
+                                 model = on.dEdge, 
+                                 fun = predict.gam,
+                                 na.omit = T,
+                                 newdata.guaranteed = TRUE)
     
     # main coefs
     beta.stem <- hsf$mean[hsf$param == "stem"]
@@ -351,19 +351,19 @@ pred_hsf <- function (.site,
     names(rast.vo)[1] <- "avail"
     
     # FR predictions
-    beta.vo <- predict(object = rast.vo, 
+    beta.vo <- terra::predict(object = rast.vo, 
                        model = off.vo, 
                        fun = predict.gam, 
                        na.omit = T,
                        newdata.guaranteed = TRUE)
     
-    beta.cc <- predict(object = rast.vo, 
+    beta.cc <- terra::predict(object = rast.vo, 
                        model = off.cc, 
                        fun = predict.gam, 
                        na.omit = T,
                        newdata.guaranteed = TRUE)
     
-    beta.dEdge <- predict(object = rast.vo, 
+    beta.dEdge <- terra::predict(object = rast.vo, 
                           model = off.dEdge, 
                           fun = predict.gam, 
                           na.omit = T,
@@ -406,13 +406,13 @@ pred_hsf <- function (.site,
     names(rast.stem)[1] <- "avail"
     
     # FR predictions
-    beta.cc <- predict(object = rast.stem, 
+    beta.cc <- terra::predict(object = rast.stem, 
                        model = on.cc, 
                        fun = predict.gam,
                        na.omit = T, 
                        newdata.guaranteed = TRUE)
     
-    beta.dEdge <- predict(object = rast.stem, 
+    beta.dEdge <- terra::predict(object = rast.stem, 
                           model = on.dEdge, 
                           fun = predict.gam,
                           na.omit = T,
@@ -463,7 +463,7 @@ pred_hsf <- function (.site,
 # 7. Process rasters ----
 
 # test each unit
-plot(pred_hsf("2C", "off", "pre"))
+terra::plot(pred_hsf("2C", "off", "pre"))
 
 # 525 m away from the unit centroid works
 
@@ -544,30 +544,39 @@ all.range |>
             max = max(max))
 
 # let's just use the same range for everything
-global.range <- c(0, 4.5)
+global.range <- c(0, 5)
 global.breaks <- c(1:4)
 
-# log change
+# percent change
 change.range <- data.frame()
 
 for (i in 1:4) {
   
   for (j in c("off", "on")) {
     
-    suppressWarnings(change.ijA <- log(pred_hsf(paste0(i, "A"), j, "post")) - 
-                       log(pred_hsf(paste0(i, "A"), j, "pre")))
-    suppressWarnings(change.ijB <- log(pred_hsf(paste0(i, "B"), j, "post")) - 
-                       log(pred_hsf(paste0(i, "B"), j, "pre")))
+    suppressWarnings(
+      
+      change.ijA <- (pred_hsf(paste0(i, "A"), j, "post") / 
+                     pred_hsf(paste0(i, "A"), j, "pre")) - 1
+      
+      )
+    
+    suppressWarnings(
+      
+      change.ijB <- (pred_hsf(paste0(i, "B"), j, "post") / 
+                     pred_hsf(paste0(i, "B"), j, "pre")) - 1
+      
+    )
     
     range.ijA <- data.frame("site" = paste0(i, "A"),
                             "season" = j,
-                            "min" = min(values(change.ijA)),
-                            "max" = max(values(change.ijA)))
+                            "l95" = quantile(values(change.ijA), prob = 0.025),
+                            "u95" = quantile(values(change.ijA), prob = 0.975))
     
     range.ijB <- data.frame("site" = paste0(i, "B"),
                             "season" = j,
-                            "min" = min(values(change.ijB)),
-                            "max" = max(values(change.ijB)))
+                            "l95" = quantile(values(change.ijB), prob = 0.025),
+                            "u95" = quantile(values(change.ijB), prob = 0.975))
     
     change.range <- rbind(change.range, rbind(range.ijA, range.ijB))
     
@@ -579,11 +588,11 @@ change.range |>
   
   group_by(season) |>
   
-  summarize(min = min(min),
-            max = max(max))
+  summarize(l95 = min(l95),
+            u95 = max(u95))
 
-global.range.change <- c(-1.7, 1.15)
-global.breaks.change <- c(-1.5, -1.0, -0.5, 0, 0.5, 1.0)
+global.range.change <- c(-0.6, 0.7)
+global.breaks.change <- c(-0.5, 0.0, 0.5)
 
 # ______________________________________________________________________________
 # 8b. Map theme ----
@@ -614,11 +623,6 @@ map_unthinned <- function (.unit, .season) {
     .rast <- pred_hsf(.site = .unit, .season = .season, .year = "pre")
   
     )
-  
-  # breaks
-  # different for off/on
-  breaks.off <- c(1, 2, 3)
-  breaks.on <- c(1, 2, 3, 4)
   
   # subset unit
   unit.poly <- units |> filter(name == .unit)
@@ -665,8 +669,8 @@ map_thinned <- function (.unit, .season) {
   
   )
   
-  # log change
-  .rast3 <- log(.rast2) - log(.rast1)
+  # percent change
+  .rast3 <- (.rast2 / .rast1) - 1
   
   # stack intensity rasters
   rast.int <- c(.rast1, .rast2)
@@ -676,12 +680,6 @@ map_thinned <- function (.unit, .season) {
 
   # subset unit
   unit.poly <- units |> filter(name == .unit)
-  
-  # breaks
-  # different for off/on
-  breaks.off <- c(1, 2, 3)
-  breaks.on <- c(1, 2, 3, 4)
-  breaks.change <- c(-1, -0.5, 0, 0.5, 1.0)
   
   # pre-post plot
   ggplot() +
@@ -742,7 +740,8 @@ map_thinned <- function (.unit, .season) {
                          high = "#003c30",
                          midpoint = 0,
                          limits = global.range.change,
-                         breaks = global.breaks.change) +
+                         breaks = global.breaks.change,
+                         labels = c("-50%", "0%", "50%")) +
     
     theme(legend.position = "right",
           legend.key.height = unit(0.3, "cm"),
@@ -752,9 +751,6 @@ map_thinned <- function (.unit, .season) {
           legend.box.spacing = unit(0.0005, "cm"),
           
           plot.margin = unit(c(0.02, 0.02, -0.22, 0.35), "cm")) -> lc.plot
-  
-  # patchwork plots together
-  #pp.plot + lc.plot + plot_layout(widths = c(2, 1))
   
   # plot_grid
   plot_grid(pp.plot, lc.plot, rel_widths = c(1.25, 1))
