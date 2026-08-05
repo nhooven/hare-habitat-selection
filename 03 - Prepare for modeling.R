@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 27 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -12,6 +12,7 @@
 # ______________________________________________________________________________
 
 library(tidyverse)
+library(mefa4)
 
 # ______________________________________________________________________________
 # 2. Read in data ----
@@ -36,8 +37,6 @@ prep_1 <- function (x) {
       # CONDITIONS
       cc = case_when(year == "PRE" ~ cc.pre,
                      year %in% c("POST1", "POST2") ~ cc.post),
-      wsr = case_when(year == "PRE" ~ wsr.pre,
-                      year %in% c("POST1", "POST2") ~ wsr.post),
       
       # LOCAL
       stem = case_when(year == "PRE" ~ stem.pre,
@@ -66,7 +65,7 @@ prep_1 <- function (x) {
     ) |>
     
     # drop NAs
-    drop_na(c(cc, twi, slope, sri, vrm,
+    drop_na(c(cc, twi, vrm,
               stem, vo, ch, dEdge)) |>
     
     # case weights
@@ -85,7 +84,7 @@ prep_1 <- function (x) {
       akde,
       
       # CONDITIONS
-      cc, twi, slope, sri, vrm, wsr,
+      cc, twi, vrm,
       
       # FOCAL
       stem, vo, ch, dEdge
@@ -101,14 +100,37 @@ data.off.1 <- prep_1(data.off)
 data.on.1 <- prep_1(data.on)
 
 # ______________________________________________________________________________
+# 4. Remove any tracks with < 10 relocations ----
+# ______________________________________________________________________________
+
+n.used.off <- data.off.1 |> group_by(track_season_post) |>
+  
+  filter(case == 1) |>
+  
+  summarize(n.used = n())
+
+n.used.on <- data.on.1 |> group_by(track_season_post) |>
+  
+  filter(case == 1) |>
+  
+  summarize(n.used = n())
+
+# remove anything with < 10 relocations
+off.less10 <- n.used.off$track_season_post[n.used.off$n.used < 10]  # n = 8
+on.less10 <- n.used.on$track_season_post[n.used.on$n.used < 10] # n = 2
+
+data.off.2 <- data.off.1 |> filter(track_season_post %notin% off.less10)
+data.on.2 <- data.on.1 |> filter(track_season_post %notin% on.less10)
+
+# ______________________________________________________________________________
 # 5. Extract attributes to bind in later ----
 # ______________________________________________________________________________
 
-data.off.attr <- data.off.1 |> dplyr::select(track_season_post:akde)
-data.on.attr <- data.on.1 |> dplyr::select(track_season_post:akde)
+data.off.attr <- data.off.2 |> dplyr::select(track_season_post:akde)
+data.on.attr <- data.on.2 |> dplyr::select(track_season_post:akde)
 
-data.off.cov <- data.off.1 |> dplyr::select(cc:dEdge)
-data.on.cov <- data.on.1 |> dplyr::select(cc:dEdge)
+data.off.cov <- data.off.2 |> dplyr::select(cc:dEdge)
+data.on.cov <- data.on.2 |> dplyr::select(cc:dEdge)
 
 # ______________________________________________________________________________
 # 6. Transformations ----
@@ -120,10 +142,7 @@ transform_covs <- function (x) {
     
     # covariate transformations
     # squared
-    mutate(cc2 = cc^2,
-           twi2 = twi^2,
-           slope2 = slope^2,
-           sri2 = sri^2,
+    mutate(twi2 = twi^2,
            vrm2 = vrm^2)
   
   return(x.1)
@@ -132,11 +151,11 @@ transform_covs <- function (x) {
 
 # ______________________________________________________________________________
 
-data.off.2 <- transform_covs(data.off.cov)
-data.on.2 <- transform_covs(data.on.cov)
+data.off.3 <- transform_covs(data.off.cov)
+data.on.3 <- transform_covs(data.on.cov)
 
 # ______________________________________________________________________________
-# 6. Save means, SDs, and ranges ----
+# 7. Save means, SDs, and ranges ----
 
 # function
 mean_sds <- function (x) {
@@ -201,14 +220,14 @@ mean_sds_trt <- function (x, y) {
 # ______________________________________________________________________________
 
 # use
-mean.sd.off <- mean_sds(data.off.2)
-mean.sd.on <- mean_sds(data.on.2)
+mean.sd.off <- mean_sds(data.off.3)
+mean.sd.on <- mean_sds(data.on.3)
 
-mean.sd.off.trt <- mean_sds_trt(data.off.2, data.off.attr)
-mean.sd.on.trt <- mean_sds_trt(data.on.2, data.on.attr)
+mean.sd.off.trt <- mean_sds_trt(data.off.3, data.off.attr)
+mean.sd.on.trt <- mean_sds_trt(data.on.3, data.on.attr)
 
 # ______________________________________________________________________________
-# 7. Standardize ----
+# 8. Standardize ----
 
 # function
 standardize_across <- function (x) {
@@ -237,40 +256,22 @@ standardize_across <- function (x) {
 
 # ______________________________________________________________________________
 
-data.off.3 <- standardize_across(data.off.2)
-data.on.3 <- standardize_across(data.on.2)
+data.off.4 <- standardize_across(data.off.3)
+data.on.4 <- standardize_across(data.on.3)
 
 # ______________________________________________________________________________
-# 8. Bind back in ----
+# 9. Bind back in ----
 # ______________________________________________________________________________
 
-data.off.4 <- cbind(data.off.attr, data.off.3)
-data.on.4 <- cbind(data.on.attr, data.on.3)
-
-# ______________________________________________________________________________
-# 9. Examine n used locations per TSP ----
-# ______________________________________________________________________________
-
-n.used.off <- data.off.4 |> group_by(track_season_post) |>
-  
-  filter(case == 1) |>
-  
-  summarize(n.used = n())
-
-n.used.on <- data.on.4 |> group_by(track_season_post) |>
-  
-  filter(case == 1) |>
-  
-  summarize(n.used = n())
-
-# some of these would never work with individual-level models
+data.off.5 <- cbind(data.off.attr, data.off.4)
+data.on.5 <- cbind(data.on.attr, data.on.4)
 
 # ______________________________________________________________________________
 # 10. Save to files ----
 # ______________________________________________________________________________
 
-saveRDS(data.off.4, "data_for_model/off_data.rds")
-saveRDS(data.on.4, "data_for_model/on_data.rds")
+saveRDS(data.off.5, "data_for_model/off_data.rds")
+saveRDS(data.on.5, "data_for_model/on_data.rds")
 
 saveRDS(mean.sd.off, "data_for_model/mean_sd_off.rds")
 saveRDS(mean.sd.on, "data_for_model/mean_sd_on.rds")
