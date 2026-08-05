@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 09 Jun 2026
 # COMPLETED: 23 Jul 2026
-# LAST MODIFIED: 23 Jul 2026
+# LAST MODIFIED: 05 Aug 2026
 # R VERSION: 4.5.2
 
 # here we want to look at overall predictive ability
@@ -691,6 +691,9 @@ ggplot(data = indiv.corr.id) +
         legend.position = "none") +
   
   scale_fill_manual(values = c("green4", "dodgerblue2")) +
+  
+  scale_x_continuous(breaks = c(-0.75, -0.25, 0.25, 0.75)) +
+  scale_y_continuous(breaks = c(2, 6, 10, 14)) +
   
   xlab(expression(rho)) +
   ylab("Individual tracks")
