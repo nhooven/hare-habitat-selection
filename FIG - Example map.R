@@ -497,7 +497,13 @@ maps.covar <- plot_grid(plot.focal.1,
 # both big map and covars
 plot_grid(map.base, maps.covar, ncol = 2, rel_widths = c(1.5, 1))
 
-
+# save as high-res png
+ggsave("fig_building/example_maps/example_fig/WR_example.png", 
+       dpi = 600, 
+       width = 5.98,
+       height = 3.96,
+       units = "in",
+       bg = "white")
 
 
 
