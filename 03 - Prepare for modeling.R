@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 05 Aug 2026
+# LAST MODIFIED: 06 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -278,3 +278,39 @@ saveRDS(mean.sd.on, "data_for_model/mean_sd_on.rds")
 
 saveRDS(mean.sd.off.trt, "data_for_model/mean_sd_off_trt.rds")
 saveRDS(mean.sd.on.trt, "data_for_model/mean_sd_on_trt.rds")
+
+# ______________________________________________________________________________
+# 11. Summaries for results ----
+# ______________________________________________________________________________
+
+# n tracks
+length(unique(data.off.5$track_season_post))
+length(unique(data.on.5$track_season_post))
+
+# total relocations
+data.off.relocs <- data.off.5 |> filter(case == 1) |>
+  
+  group_by(track_season_post) |>
+  
+  summarize(relocs = n())
+
+data.on.relocs <- data.on.5 |> filter(case == 1) |>
+  
+  group_by(track_season_post) |>
+  
+  summarize(relocs = n())
+
+all.relocs <- rbind(data.off.relocs, data.on.relocs)
+
+# summaries
+min(all.relocs$relocs)
+max(all.relocs$relocs)
+median(all.relocs$relocs)
+sd(all.relocs$relocs)
+
+# total relocs and background
+nrow(data.off.5)
+nrow(data.off.5 |> filter(case == 1))
+
+nrow(data.on.5)
+nrow(data.on.5 |> filter(case == 1))
