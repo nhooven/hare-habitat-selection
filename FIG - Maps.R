@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 30 Jul 2026
 # COMPLETED: 31 Jul 2026
-# LAST MODIFIED: 05 Aug 2026
+# LAST MODIFIED: 07 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -472,31 +472,31 @@ terra::plot(pred_hsf("2C", "off", "pre"))
 # ______________________________________________________________________________
 
 # 1A
-off.pre.1A <- pred_hsf("1A", "off", "pre")
-off.post.1A <- pred_hsf("1A", "off", "post")
+#off.pre.1A <- pred_hsf("1A", "off", "pre")
+#off.post.1A <- pred_hsf("1A", "off", "post")
 
-on.pre.1A <- pred_hsf("1A", "on", "pre")
-on.post.1A <- pred_hsf("1A", "on", "post")
+#on.pre.1A <- pred_hsf("1A", "on", "pre")
+#on.post.1A <- pred_hsf("1A", "on", "post")
 
 # change
 # this will be difference between the log(intensities)
-off.1A.change <- log(off.post.1A) - log(off.pre.1A)
-on.1A.change <- log(on.post.1A) - log(on.pre.1A)
+#off.1A.change <- log(off.post.1A) - log(off.pre.1A)
+#on.1A.change <- log(on.post.1A) - log(on.pre.1A)
 
 # 1B
-off.pre.1B <- pred_hsf("1B", "off", "pre")
-off.post.1B <- pred_hsf("1B", "off", "post")
+#off.pre.1B <- pred_hsf("1B", "off", "pre")
+#off.post.1B <- pred_hsf("1B", "off", "post")
 
-on.pre.1B <- pred_hsf("1B", "on", "pre")
-on.post.1B <- pred_hsf("1B", "on", "post")
+#on.pre.1B <- pred_hsf("1B", "on", "pre")
+#on.post.1B <- pred_hsf("1B", "on", "post")
 
 # change
-off.1B.change <- log(off.post.1B) - log(off.pre.1B)
-on.1B.change <- log(on.post.1B) - log(on.pre.1B)
+#off.1B.change <- log(off.post.1B) - log(off.pre.1B)
+#on.1B.change <- log(on.post.1B) - log(on.pre.1B)
 
 # 1C (pre is fine)
-off.1C <- pred_hsf("1C", "off", "pre")
-on.1C <- pred_hsf("1C", "on", "pre")
+#off.1C <- pred_hsf("1C", "off", "pre")
+#on.1C <- pred_hsf("1C", "on", "pre")
 
 # ______________________________________________________________________________
 # 8. Build maps ----
