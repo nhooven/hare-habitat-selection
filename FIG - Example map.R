@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 27 Jul 2026
 # COMPLETED: 
-# LAST MODIFIED: 03 Aug 2026
+# LAST MODIFIED: 07 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -339,7 +339,7 @@ ggplot() +
 # they should all be standardized and the legend should be shared
 # and reflect the full range 
 
-# we'll use the "pre" veg rasters for simplicity
+# we should use both the pre- and post- rasters
 
 # ______________________________________________________________________________
 
@@ -348,9 +348,13 @@ rast.all.crop <- crop(rast.all, wr.bbox)
 
 # standardize and stack rasters 
 rast.focal.1 <- c(scale(rast.all.crop$vo.pre),
+                  scale(rast.all.crop$vo.post),
                   scale(rast.all.crop$stem.pre),
+                  scale(rast.all.crop$stem.post),
                   scale(rast.all.crop$ch.pre),
-                  scale(rast.all.crop$cc.pre))
+                  scale(rast.all.crop$ch.post),
+                  scale(rast.all.crop$cc.pre),
+                  scale(rast.all.crop$cc.post))
 
 rast.focal.2 <- c(scale(rast.all.crop$dEdge))
 
@@ -358,23 +362,24 @@ rast.cond <- c(scale(rast.all.crop$twi),
                scale(rast.all.crop$vrm))
 
 # names
-names(rast.focal.1) <- c("VO", "STEM", "CH", "CC")
+names(rast.focal.1) <- c("VO (pre)", "VO (post)", "STEM (pre)", "STEM (post)", 
+                         "CH (pre)", "CH (post)", "CC (pre)", "CC (post)")
 names(rast.focal.2) <- c("dEdge")
 names(rast.cond) <- c("TWI", "VRM")
 
 # determine the appropriate range (quantiles)
 min(quantile(values(rast.focal.1), 0.01), 
     quantile(values(rast.focal.2), 0.01), 
-    quantile(values(rast.cond), 0.01))   # -2.229621
+    quantile(values(rast.cond), 0.01))   # -2.221115
 
 max(quantile(values(rast.focal.1), 0.99), 
     quantile(values(rast.focal.2), 0.99), 
     quantile(values(rast.cond), 0.99))    # 3.806747
 
 # clamp
-rast.focal.1 <- clamp(rast.focal.1, -2.229621, 3.806747)
-rast.focal.2 <- clamp(rast.focal.2, -2.229621, 3.806747)
-rast.cond <- clamp(rast.cond, -2.229621, 3.806747)
+rast.focal.1 <- clamp(rast.focal.1, -2.221115, 3.806747)
+rast.focal.2 <- clamp(rast.focal.2, -2.221115, 3.806747)
+rast.cond <- clamp(rast.cond, -2.221115, 3.806747)
 
 # plots
 ggplot() +
@@ -382,8 +387,16 @@ ggplot() +
   theme_bw() +
   
   facet_wrap(~ lyr, 
-             nrow = 2,
-             strip.position = "left") +
+             nrow = 4,
+             strip.position = "right",
+             labeller = labeller(lyr = c("VO (pre)" = "", 
+                                         "VO (post)" = "VO", 
+                                         "STEM (pre)" = "", 
+                                         "STEM (post)" = "STEM", 
+                                         "CH (pre)" = "", 
+                                         "CH (post)" = "CH", 
+                                         "CC (pre)" = "", 
+                                         "CC (post)" = "CC"))) +
   
   # basemap
   geom_spatraster(data = rast.focal.1) +
@@ -400,11 +413,15 @@ ggplot() +
         legend.key.width = unit(0.45, "cm"),
         legend.key.height = unit(0.2, "cm"),
         legend.title = element_text(size = 8),
-        legend.title.position = "top",
-        legend.text = element_text(size = 7),
+        legend.title.position = "right",
+        legend.text = element_text(size = 7,
+                                   margin = margin(t = 3, "cm")),
         
-        strip.background = element_rect(color = NA),
-        strip.text = element_text(size = 7)) +
+        panel.spacing.x = unit(0.005, "cm"),
+        strip.background = element_rect(color = NA,
+                                        fill = NA),
+        strip.text = element_text(size = 7,
+                                  hjust = 0)) +
   
   # colors
   scale_fill_viridis_c(name = "SD") -> plot.focal.1
@@ -416,7 +433,7 @@ ggplot() +
   
   facet_wrap(~ lyr, 
              nrow = 1,
-             strip.position = "left") +
+             strip.position = "right") +
   
   # basemap
   geom_spatraster(data = rast.focal.2) +
@@ -429,8 +446,11 @@ ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none",
-        strip.background = element_rect(color = NA),
-        strip.text = element_text(size = 7)) +
+        
+        strip.background = element_rect(color = NA,
+                                        fill = NA),
+        strip.text = element_text(size = 7,
+                                  hjust = 0)) +
   
   # colors
   scale_fill_viridis_c() -> plot.focal.2
@@ -442,7 +462,7 @@ ggplot() +
   
   facet_wrap(~ lyr, 
              nrow = 1,
-             strip.position = "left") +
+             strip.position = "right") +
   
   # basemap
   geom_spatraster(data = rast.cond) +
@@ -455,8 +475,11 @@ ggplot() +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "none",
-        strip.background = element_rect(color = NA),
-        strip.text = element_text(size = 7)) +
+        
+        strip.background = element_rect(color = NA,
+                                        fill = NA),
+        strip.text = element_text(size = 7,
+                                  hjust = 0)) +
   
   # colors
   scale_fill_viridis_c() -> plot.cond
@@ -469,10 +492,10 @@ maps.covar <- plot_grid(plot.focal.1,
                         plot.focal.2,
                         plot.cond,
                         nrow = 3,
-                        rel_heights = c(2.75, 0.7, 1))
+                        rel_heights = c(3.05, 0.66, 0.675))
 
 # both big map and covars
-plot_grid(map.base, maps.covar, ncol = 2, rel_widths = c(1.75, 1))
+plot_grid(map.base, maps.covar, ncol = 2, rel_widths = c(1.5, 1))
 
 
 
@@ -485,3 +508,5 @@ maps.cover <- plot_grid(map.dh, map.msm, map.om, map.jsm,
                         rel_heights = c(1.5, 1, 1, 1))
 
 maps.cover
+
+# NEXT: Standard plots for all clusters
