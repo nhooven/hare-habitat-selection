@@ -570,13 +570,13 @@ for (i in 1:4) {
     
     range.ijA <- data.frame("site" = paste0(i, "A"),
                             "season" = j,
-                            "l95" = quantile(values(change.ijA), prob = 0.025),
-                            "u95" = quantile(values(change.ijA), prob = 0.975))
+                            "low" = quantile(values(change.ijA), prob = 0.01),
+                            "upp" = quantile(values(change.ijA), prob = 0.99))
     
     range.ijB <- data.frame("site" = paste0(i, "B"),
                             "season" = j,
-                            "l95" = quantile(values(change.ijB), prob = 0.025),
-                            "u95" = quantile(values(change.ijB), prob = 0.975))
+                            "low" = quantile(values(change.ijB), prob = 0.01),
+                            "upp" = quantile(values(change.ijB), prob = 0.99))
     
     change.range <- rbind(change.range, rbind(range.ijA, range.ijB))
     
@@ -588,10 +588,10 @@ change.range |>
   
   group_by(season) |>
   
-  summarize(l95 = min(l95),
-            u95 = max(u95))
+  summarize(low = min(low),
+            upp = max(upp))
 
-global.range.change <- c(-0.6, 0.7)
+global.range.change <- c(-0.7, 0.8)
 global.breaks.change <- c(-0.5, 0.0, 0.5)
 
 # ______________________________________________________________________________
@@ -651,7 +651,8 @@ map_unthinned <- function (.unit, .season) {
           legend.key.width = unit(0.2, "cm"),
           legend.text = element_text(size = 6,
                                      margin = margin(l = 3, "cm")),
-          legend.box.spacing = unit(-0.2, "cm"),
+          legend.box.spacing = unit(0.1, "cm"),
+          legend.background = element_rect(fill = NA),
           
           plot.margin = unit(c(0.02, 0.02, 0.02, 0.02), "cm"))
   
@@ -753,7 +754,7 @@ map_thinned <- function (.unit, .season) {
           plot.margin = unit(c(0.02, 0.02, -0.22, 0.35), "cm")) -> lc.plot
   
   # plot_grid
-  plot_grid(pp.plot, lc.plot, rel_widths = c(1.25, 1))
+  plot_grid(pp.plot, lc.plot, rel_widths = c(1.2, 1))
   
 }
 
@@ -772,6 +773,14 @@ plot_grid(
   rel_heights = c(1, 2, 2)
   
 )
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/WR.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
 
 # CB
 plot_grid(
