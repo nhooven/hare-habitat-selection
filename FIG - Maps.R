@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 30 Jul 2026
 # COMPLETED: 31 Jul 2026
-# LAST MODIFIED: 07 Aug 2026
+# LAST MODIFIED: 10 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -794,6 +794,14 @@ plot_grid(
   
 )
 
+# save as high-res png
+ggsave("fig_building/HSF_maps/CB.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
 # BB
 plot_grid(
   
@@ -805,6 +813,14 @@ plot_grid(
   rel_heights = c(1, 2, 2)
   
 )
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/BB.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
 
 # CH
 plot_grid(
@@ -818,4 +834,612 @@ plot_grid(
   
 )
 
-# NEXT: standard deviations
+# save as high-res png
+ggsave("fig_building/HSF_maps/CH.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
+# ______________________________________________________________________________
+# 10. Map uncertainty ----
+# ______________________________________________________________________________
+# 10a. Functions ----
+# ______________________________________________________________________________
+
+# helper function to sample all draws of a FR raster prediction
+sample_FR_rast <- function (.rast,
+                            .nsamp) {
+  
+  all.draws <- app(.rast[[c("fit", "se.fit")]],
+      
+      fun = function (x) {
+        
+        rnorm(.nsamp, x[1], x[2])
+        
+      })
+  
+  return(all.draws)
+  
+}
+
+# predict with SD
+pred_hsf_sd <- function (.site,
+                         .season,
+                         .year,
+                         .nsamp = 100) {
+  
+  # ____________________________________________________________________________
+  # ALWAYS calculate the "pre" raster to prevent artifacts
+  
+  # importantly, the TRT var should be the correct post one! otherwise the 
+  # functional models assume unthinned (not what we want)
+  
+  # so, raster pre, model predictions post
+  
+  # ____________________________________________________________________________
+  
+  site.rast.pre <- prep_rast(.site = .site, .season = .season, .year = "pre")
+  
+  # add TRT for predictions
+  TRT <- case_when(
+    
+    .year == "pre" ~ "UNTHIN",
+    .year == "post" & .site %in% c("1C", "2C", "3C", "4C") ~ "UNTHIN",
+    .year == "post" & .site %in% c("1A", "2B", "3B", "4A") ~ "RET",
+    .year == "post" & .site %in% c("1B", "2A", "3A", "4B") ~ "PIL"
+    
+  )
+  
+  # add a TRT and clust raster
+  site.rast.pre <- c(site.rast.pre,
+                     rast(site.rast.pre, nlyrs = 1, names = "TRT", vals = TRT),
+                     rast(site.rast.pre, nlyrs = 1, names = "cluster", vals = substr(.site, 1, 1)))
+  
+  if (.season == "off") {
+    
+    # base model
+    hsf <- M.off[[1]]
+    
+    # FR predictions + SEs
+    # make rasters for prediction
+    rast.vo <- subset(site.rast.pre, c("a.vo", "TRT", "cluster"))
+    
+    # names
+    names(rast.vo)[1] <- "avail"
+    
+    # FR predictions
+    beta.vo <- terra::predict(object = rast.vo, 
+                              model = off.vo, 
+                              fun = predict.gam, 
+                              se = T, # add SE
+                              na.omit = T,
+                              newdata.guaranteed = TRUE)
+    
+    beta.cc <- terra::predict(object = rast.vo, 
+                              model = off.cc, 
+                              fun = predict.gam, 
+                              na.omit = T,
+                              se = T, # add SE
+                              newdata.guaranteed = TRUE)
+    
+    beta.dEdge <- terra::predict(object = rast.vo, 
+                                 model = off.dEdge, 
+                                 fun = predict.gam, 
+                                 na.omit = T,
+                                 se = T, # add SE
+                                 newdata.guaranteed = TRUE)
+    
+    # sampled rasters
+    beta.vo.rast <- sample_FR_rast(beta.vo, .nsamp)
+    beta.cc.rast <- sample_FR_rast(beta.cc, .nsamp)
+    beta.dEdge.rast <- sample_FR_rast(beta.dEdge, .nsamp)
+    
+    # main coefs
+    beta.ch <- hsf$mean[hsf$param == "ch"]
+    beta.twi <- hsf$mean[hsf$param == "twi"]
+    beta.twi2 <- hsf$mean[hsf$param == "twi2"]
+    beta.vrm <- hsf$mean[hsf$param == "vrm"]
+    beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
+    
+    # SEs
+    se.ch <- hsf$sd[hsf$param == "ch"]
+    se.twi <- hsf$sd[hsf$param == "twi"]
+    se.twi2 <- hsf$sd[hsf$param == "twi2"]
+    se.vrm <- hsf$sd[hsf$param == "vrm"]
+    se.vrm2 <- hsf$sd[hsf$param == "vrm2"]
+    
+    # calculate SE of RSS prediction
+    # blank rast to accumulate predictions
+    all.rss <- list()
+    
+    for (i in 1:.nsamp) {
+      
+      rss <- exp(
+      
+        # base
+        rnorm(1, beta.twi, se.twi) * site.rast.pre$twi +
+        rnorm(1, beta.twi2, se.twi2) * site.rast.pre$twi2 +
+        rnorm(1, beta.vrm, se.vrm) * site.rast.pre$vrm +
+        rnorm(1, beta.vrm2, se.vrm2) * site.rast.pre$vrm2 +
+        rnorm(1, beta.ch, se.ch) * site.rast.pre$ch +
+        
+        # functional responses
+        beta.vo.rast[[i]] * site.rast.pre$vo +
+        beta.cc.rast[[i]] * site.rast.pre$cc +
+        beta.dEdge.rast[[i]] * site.rast.pre$dEdge
+        
+      )
+      
+      all.rss <- c(all.rss, rss)
+      
+    }
+    
+  } # season == "off"
+  
+  if (.season == "on") {
+    
+    # base model
+    hsf <- M.on[[1]]
+    
+    # FR predictions + SEs
+    # make rasters for prediction
+    rast.stem <- subset(site.rast.pre, c("a.stem", "TRT", "cluster"))
+    
+    # names
+    names(rast.stem)[1] <- "avail"
+    
+    # FR predictions
+    beta.cc <- terra::predict(object = rast.stem, 
+                              model = on.cc, 
+                              fun = predict.gam,
+                              se = T,
+                              na.omit = T, 
+                              newdata.guaranteed = TRUE)
+    
+    beta.dEdge <- terra::predict(object = rast.stem, 
+                                 model = on.dEdge, 
+                                 fun = predict.gam,
+                                 se = T,
+                                 na.omit = T,
+                                 newdata.guaranteed = TRUE)
+    
+    # sampled rasters
+    beta.cc.rast <- sample_FR_rast(beta.cc, .nsamp)
+    beta.dEdge.rast <- sample_FR_rast(beta.dEdge, .nsamp)
+    
+    # main coefs
+    beta.stem <- hsf$mean[hsf$param == "stem"]
+    beta.ch <- hsf$mean[hsf$param == "ch"]
+    beta.twi <- hsf$mean[hsf$param == "twi"]
+    beta.twi2 <- hsf$mean[hsf$param == "twi2"]
+    beta.vrm <- hsf$mean[hsf$param == "vrm"]
+    beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
+    
+    se.stem <- hsf$sd[hsf$param == "stem"]
+    se.ch <- hsf$sd[hsf$param == "ch"]
+    se.twi <- hsf$sd[hsf$param == "twi"]
+    se.twi2 <- hsf$sd[hsf$param == "twi2"]
+    se.vrm <- hsf$sd[hsf$param == "vrm"]
+    se.vrm2 <- hsf$sd[hsf$param == "vrm2"]
+    
+    # calculate SE of RSS prediction
+    # blank rast to accumulate predictions
+    all.rss <- list()
+    
+    for (i in 1:.nsamp) {
+      
+      rss <- exp(
+      
+        # base
+        rnorm(1, beta.twi, se.twi) * site.rast.pre$twi +
+        rnorm(1, beta.twi2, se.twi2) * site.rast.pre$twi2 +
+        rnorm(1, beta.vrm, se.vrm) * site.rast.pre$vrm +
+        rnorm(1, beta.vrm2, se.vrm2) * site.rast.pre$vrm2 +
+        rnorm(1, beta.stem, se.stem) * site.rast.pre$stem +
+        rnorm(1, beta.ch, se.ch) * site.rast.pre$ch +
+        
+        # functional responses
+        beta.cc.rast[[i]] * site.rast.pre$cc +
+        beta.dEdge.rast[[i]] * site.rast.pre$dEdge
+      
+      )
+      
+      all.rss <- c(all.rss, rss)
+      
+    }
+    
+  } # season == "on"
+  
+  rss.pre <- all.rss
+  
+  # ____________________________________________________________________________
+  
+  # prepare rasters
+  site.rast <- prep_rast(.site = .site, .season = .season, .year = .year)
+  
+  # add TRT for predictions
+  TRT <- case_when(
+    
+    .year == "pre" ~ "UNTHIN",
+    .year == "post" & .site %in% c("1C", "2C", "3C", "4C") ~ "UNTHIN",
+    .year == "post" & .site %in% c("1A", "2B", "3B", "4A") ~ "RET",
+    .year == "post" & .site %in% c("1B", "2A", "3A", "4B") ~ "PIL"
+    
+  )
+  
+  # add a TRT and clust raster
+  site.rast <- c(site.rast,
+                 rast(site.rast, nlyrs = 1, names = "TRT", vals = TRT),
+                 rast(site.rast, nlyrs = 1, names = "cluster", vals = substr(.site, 1, 1)))
+  
+  if (.season == "off") {
+    
+    # base model
+    hsf <- M.off[[1]]
+    
+    # FR predictions + SEs
+    # make rasters for prediction
+    rast.vo <- subset(site.rast, c("a.vo", "TRT", "cluster"))
+    
+    # names
+    names(rast.vo)[1] <- "avail"
+    
+    # FR predictions
+    beta.vo <- terra::predict(object = rast.vo, 
+                              model = off.vo, 
+                              fun = predict.gam, 
+                              se = T, # add SE
+                              na.omit = T,
+                              newdata.guaranteed = TRUE)
+    
+    beta.cc <- terra::predict(object = rast.vo, 
+                              model = off.cc, 
+                              fun = predict.gam, 
+                              na.omit = T,
+                              se = T, # add SE
+                              newdata.guaranteed = TRUE)
+    
+    beta.dEdge <- terra::predict(object = rast.vo, 
+                                 model = off.dEdge, 
+                                 fun = predict.gam, 
+                                 na.omit = T,
+                                 se = T, # add SE
+                                 newdata.guaranteed = TRUE)
+    
+    # sampled rasters
+    beta.vo.rast <- sample_FR_rast(beta.vo, .nsamp)
+    beta.cc.rast <- sample_FR_rast(beta.cc, .nsamp)
+    beta.dEdge.rast <- sample_FR_rast(beta.dEdge, .nsamp)
+    
+    # main coefs
+    beta.ch <- hsf$mean[hsf$param == "ch"]
+    beta.twi <- hsf$mean[hsf$param == "twi"]
+    beta.twi2 <- hsf$mean[hsf$param == "twi2"]
+    beta.vrm <- hsf$mean[hsf$param == "vrm"]
+    beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
+    
+    # SEs
+    se.ch <- hsf$sd[hsf$param == "ch"]
+    se.twi <- hsf$sd[hsf$param == "twi"]
+    se.twi2 <- hsf$sd[hsf$param == "twi2"]
+    se.vrm <- hsf$sd[hsf$param == "vrm"]
+    se.vrm2 <- hsf$sd[hsf$param == "vrm2"]
+    
+    # calculate SE of RSS prediction
+    # blank rast to accumulate predictions
+    all.rss <- list()
+    
+    for (i in 1:.nsamp) {
+      
+      rss <- exp(
+        
+        # base
+        rnorm(1, beta.twi, se.twi) * site.rast.pre$twi +
+          rnorm(1, beta.twi2, se.twi2) * site.rast.pre$twi2 +
+          rnorm(1, beta.vrm, se.vrm) * site.rast.pre$vrm +
+          rnorm(1, beta.vrm2, se.vrm2) * site.rast.pre$vrm2 +
+          rnorm(1, beta.ch, se.ch) * site.rast.pre$ch +
+          
+          # functional responses
+          beta.vo.rast[[i]] * site.rast.pre$vo +
+          beta.cc.rast[[i]] * site.rast.pre$cc +
+          beta.dEdge.rast[[i]] * site.rast.pre$dEdge
+        
+      )
+      
+      all.rss <- c(all.rss, rss)
+      
+    }
+    
+  } # season == "off"
+  
+  if (.season == "on") {
+    
+    # base model
+    hsf <- M.on[[1]]
+    
+    # FR predictions + SEs
+    # make rasters for prediction
+    rast.stem <- subset(site.rast, c("a.stem", "TRT", "cluster"))
+    
+    # names
+    names(rast.stem)[1] <- "avail"
+    
+    # FR predictions
+    beta.cc <- terra::predict(object = rast.stem, 
+                              model = on.cc, 
+                              fun = predict.gam,
+                              se = T,
+                              na.omit = T, 
+                              newdata.guaranteed = TRUE)
+    
+    beta.dEdge <- terra::predict(object = rast.stem, 
+                                 model = on.dEdge, 
+                                 fun = predict.gam,
+                                 se = T,
+                                 na.omit = T,
+                                 newdata.guaranteed = TRUE)
+    
+    # sampled rasters
+    beta.cc.rast <- sample_FR_rast(beta.cc, .nsamp)
+    beta.dEdge.rast <- sample_FR_rast(beta.dEdge, .nsamp)
+    
+    # main coefs
+    beta.stem <- hsf$mean[hsf$param == "stem"]
+    beta.ch <- hsf$mean[hsf$param == "ch"]
+    beta.twi <- hsf$mean[hsf$param == "twi"]
+    beta.twi2 <- hsf$mean[hsf$param == "twi2"]
+    beta.vrm <- hsf$mean[hsf$param == "vrm"]
+    beta.vrm2 <- hsf$mean[hsf$param == "vrm2"]
+    
+    se.stem <- hsf$sd[hsf$param == "stem"]
+    se.ch <- hsf$sd[hsf$param == "ch"]
+    se.twi <- hsf$sd[hsf$param == "twi"]
+    se.twi2 <- hsf$sd[hsf$param == "twi2"]
+    se.vrm <- hsf$sd[hsf$param == "vrm"]
+    se.vrm2 <- hsf$sd[hsf$param == "vrm2"]
+    
+    # calculate SE of RSS prediction
+    # blank rast to accumulate predictions
+    all.rss <- list()
+    
+    for (i in 1:.nsamp) {
+      
+      rss <- exp(
+        
+        # base
+        rnorm(1, beta.twi, se.twi) * site.rast.pre$twi +
+          rnorm(1, beta.twi2, se.twi2) * site.rast.pre$twi2 +
+          rnorm(1, beta.vrm, se.vrm) * site.rast.pre$vrm +
+          rnorm(1, beta.vrm2, se.vrm2) * site.rast.pre$vrm2 +
+          rnorm(1, beta.stem, se.stem) * site.rast.pre$stem +
+          rnorm(1, beta.ch, se.ch) * site.rast.pre$ch +
+          
+          # functional responses
+          beta.cc.rast[[i]] * site.rast.pre$cc +
+          beta.dEdge.rast[[i]] * site.rast.pre$dEdge
+        
+      )
+      
+      all.rss <- c(all.rss, rss)
+      
+    }
+    
+  } # season == "on"
+  
+  # calculate SDs and mosaic in
+  rss.pre.sd <- app(rast(rss.pre), sd)
+  rss.sd <- app(rast(all.rss), sd)
+  
+  # slightly buffered unit 
+  focal.unit <- units |> filter(name == .site) |> st_buffer(dist = 30)
+  
+  # mask
+  rss.mask <- rss.sd |> crop(focal.unit) |> mask(focal.unit)
+  
+  out.rast <- merge(rss.sd, rss.pre.sd)
+  
+  return(out.rast)
+  
+}
+
+# test
+plot(pred_hsf_sd("1B", "off", "post", 5))
+
+# ______________________________________________________________________________
+# 10b. Map functions ----
+# ______________________________________________________________________________
+
+map_unthinned_sd <- function (.unit, .season, .nsamp = 100) {
+  
+  # prep rasters
+  suppressWarnings(
+    
+    .rast <- pred_hsf_sd(.site = .unit, .season = .season, .year = "pre", .nsamp = .nsamp)
+    
+  )
+  
+  # clamp to 99% quantile
+  .rast <- clamp(.rast, upper = quantile(values(.rast), prob = 0.99))
+  
+  # subset unit
+  unit.poly <- units |> filter(name == .unit)
+  
+  # plot
+  ggplot() +
+    
+    theme_hsf() +
+    
+    # intensity prediction
+    geom_spatraster(data = .rast) +
+    
+    # unit boundary
+    geom_sf(data = unit.poly,
+            fill = NA,
+            color = "white") +
+    
+    # correct viridis fill
+    scale_fill_viridis_c(option = "turbo") +
+    
+    theme(legend.key.height = unit(0.3, "cm"),
+          legend.key.width = unit(0.2, "cm"),
+          legend.text = element_text(size = 6,
+                                     margin = margin(l = 3, "cm")),
+          legend.box.spacing = unit(0.1, "cm"),
+          legend.background = element_rect(fill = NA),
+          
+          plot.margin = unit(c(0.02, 0.02, 0.02, 0.02), "cm"))
+  
+}
+
+map_thinned_sd <- function (.unit, .season, .nsamp = 100) {
+  
+  suppressWarnings( {
+    
+    # predictive rasters
+    .rast1 <- pred_hsf_sd(.site = .unit, .season = .season, .year = "pre", .nsamp = .nsamp)
+    .rast2 <- pred_hsf_sd(.site = .unit, .season = .season, .year = "post", .nsamp = .nsamp)
+    
+  }
+  
+  )
+  
+  # clamp to 98% quantile (we have some extreme values due to covariate artifacts)
+  .rast1 <- clamp(.rast1, upper = quantile(values(.rast1), prob = 0.98))
+  .rast2 <- clamp(.rast2, upper = quantile(values(.rast2), prob = 0.98))
+  
+  # stack intensity rasters
+  rast.int <- c(.rast1, .rast2)
+  
+  # names
+  names(rast.int) <- c("PRE", "POST")
+  
+  # subset unit
+  unit.poly <- units |> filter(name == .unit)
+  
+  # pre-post plot
+  ggplot() +
+    
+    theme_hsf() +
+    
+    facet_wrap(~ lyr) +
+    
+    # intensity prediction
+    geom_spatraster(data = rast.int) +
+    
+    # unit boundary
+    geom_sf(data = unit.poly,
+            fill = NA,
+            color = "white") +
+    
+    # correct viridis fill
+    scale_fill_viridis_c(option = "turbo") +
+    
+    labs(fill = "intensity") +
+    
+    # legend args
+    theme(legend.position = "right",
+          legend.title.position = "top",
+          legend.key.height = unit(0.3, "cm"),
+          legend.key.width = unit(0.2, "cm"),
+          legend.text = element_text(size = 6,
+                                     margin = margin(l = 3, "cm")),
+          legend.box.spacing = unit(0.02, "cm"),
+          
+          plot.margin = unit(c(0.02, 0.02, 0.02, 0.02), "cm"),
+          
+          strip.text = element_text(size = 7)) +
+    
+    # strips
+    theme(strip.background = element_blank()) -> pp.plot
+  
+  return(pp.plot)
+  
+}
+
+# ______________________________________________________________________________
+# 9. Plot grids ----
+# ______________________________________________________________________________
+
+# WR
+plot_grid(
+  
+  plot_grid(map_unthinned_sd("1C", "off"), map_unthinned_sd("1C", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("1A", "off"), map_thinned_sd("1A", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("1B", "off"), map_thinned_sd("1B", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 1.1, 1.1)
+  
+)
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/WR_sd.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
+# CB
+plot_grid(
+  
+  plot_grid(map_unthinned_sd("2C", "off"), map_unthinned_sd("2C", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("2B", "off"), map_thinned_sd("2B", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("2A", "off"), map_thinned_sd("2A", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 1.1, 1.1)
+  
+)
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/CB_sd.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
+# BB
+plot_grid(
+  
+  plot_grid(map_unthinned_sd("3C", "off"), map_unthinned_sd("3C", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("3B", "off"), map_thinned_sd("3B", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("3A", "off"), map_thinned_sd("3A", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 1.1, 1.1)
+  
+)
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/BB_sd.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
+# CH
+plot_grid(
+  
+  plot_grid(map_unthinned_sd("4C", "off"), map_unthinned_sd("4C", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("4A", "off"), map_thinned_sd("4A", "on"), nrow = 1),
+  plot_grid(map_thinned_sd("4B", "off"), map_thinned_sd("4B", "on"), nrow = 1),
+  
+  nrow = 3,
+  rel_heights = c(1, 1.1, 1.1)
+  
+)
+
+# save as high-res png
+ggsave("fig_building/HSF_maps/CH_sd.png", 
+       dpi = 600, 
+       width = 5.55,
+       height = 3.5,
+       units = "in",
+       bg = "white")
+
