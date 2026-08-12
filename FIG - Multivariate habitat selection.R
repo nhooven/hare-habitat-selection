@@ -1,10 +1,10 @@
 # PROJECT: Habitat selection
-# SCRIPT: 11 - Multivariate habitat selection
+# SCRIPT: FIG - Multivariate habitat selection
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 23 Jul 2026
 # COMPLETED: 23 Jul 2026
-# LAST MODIFIED: 23 Jul 2026
+# LAST MODIFIED: 12 Aug 2026
 # R VERSION: 4.5.2
 
 # instead of testing relationships for single coefficients, it might be useful
@@ -20,6 +20,7 @@
 
 library(tidyverse)
 library(vegan)
+library(cowplot)
 
 # ______________________________________________________________________________
 # 2. Read individual slopes ----
@@ -123,7 +124,10 @@ scores.off <- fr.data.off |>
   
   mutate(NMDS1 = scores(nmds.off)[ , 1],
          NMDS2 = scores(nmds.off)[ , 2],
-         TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")))
+         TRT = factor(TRT, 
+                      levels = c("UNTHIN", "RET", "PIL"),
+                      labels = c("U", "R", "P")),
+         cluster = factor(cluster))
   
 scores.on <- fr.data.on |>
   
@@ -137,48 +141,82 @@ scores.on <- fr.data.on |>
   
   mutate(NMDS1 = scores(nmds.on)[ , 1],
          NMDS2 = scores(nmds.on)[ , 2],
-         TRT = factor(TRT, levels = c("UNTHIN", "RET", "PIL")))
+         TRT = factor(TRT, 
+                      levels = c("UNTHIN", "RET", "PIL"),
+                      labels = c("U", "R", "P")),
+         cluster = factor(cluster))
 
 # ______________________________________________________________________________
 # 7. Plot function ----
 # ______________________________________________________________________________
 
-plot_nmds <- function (.scores) {
+plot_nmds <- function (.scores, .season, .var) {
   
-  if (nrow(.scores) == 97) { 
-    
-    .col <- c("gray", "green3", "green4") 
-    
-    } else { 
-    
-    .col <- c("gray", "dodgerblue3", "dodgerblue4")
-    
-    }
+  # colors by season and group
+  if (.season == "off" & .var == "TRT") { .col <- c("gray65", "green4", "darkorange3") }
+  if (.season == "off" & .var == "sex") { .col <- c("green4", "darkorange3") }
+  if (.season == "off" & .var == "cluster") { .col <- c("gray65", "green4", "darkorange3", "#FF3300") }
   
+  if (.season == "on" & .var == "TRT") { .col <- c("gray65", "dodgerblue3", "dodgerblue4") }
+  if (.season == "on" & .var == "sex") { .col <- c("dodgerblue3", "dodgerblue4") }
+  if (.season == "on" & .var == "cluster") { .col <- c("gray65", "dodgerblue3", "dodgerblue4", "darkblue") }
+  
+  # shape by group
+  if (.var == "TRT") { .shp <- c(21, 22, 23) }
+  if (.var == "sex") { .shp <- c(21, 22) }
+  if (.var == "cluster") { .shp <- c(21, 22, 23, 24) }
+  
+  # rename goruping variable
+  .scores <- .scores |> rename(group = .var)
+    
   ggplot(.scores) +
     
     theme_classic() +
     
     stat_ellipse(aes(x = NMDS1,
                      y = NMDS2,
-                     linetype = TRT,
-                     color = TRT),
-                 linewidth = 1.1) +
+                     linetype = group,
+                     color = group),
+                 linewidth = 0.6) +
     
     geom_point(aes(x = NMDS1,
                    y = NMDS2,
-                   shape = TRT,
-                   fill = TRT),
-               color = "black") +
+                   shape = group,
+                   color = group),
+               fill = "white",
+               size = 0.8) +
     
-    scale_fill_manual(values = .col) +
     scale_color_manual(values = .col) +
-    scale_shape_manual(values = c(21, 22, 23)) +
+    scale_shape_manual(values = .shp) +
     
     theme(legend.position = "top",
-          legend.title = element_blank())
+          legend.title = element_blank(),
+          axis.text = element_text(size = 7),
+          axis.title = element_text(size = 7)) +
+    
+    guides(color = guide_legend(override.aes = list(size = 2,
+                                                    stroke = 1)))
   
 }
 
 # plot together
-cowplot::plot_grid(plot_nmds(scores.off), plot_nmds(scores.on))
+plot_grid(
+  
+  plot_nmds(scores.off, "off", "TRT"), plot_nmds(scores.on, "on", "TRT"), 
+  plot_nmds(scores.off, "off", "sex"), plot_nmds(scores.on, "on", "sex"), 
+  plot_nmds(scores.off, "off", "cluster"), plot_nmds(scores.on, "on", "cluster"), 
+  
+  nrow = 3,
+  labels = "auto"
+  
+)
+
+# 500 x 922
+
+ggsave("fig_building/NMDS/NMDS.png", 
+       dpi = 600, 
+       width = 500,
+       height = 922,
+       units = "px",
+       bg = "white",
+       scale = 6)
