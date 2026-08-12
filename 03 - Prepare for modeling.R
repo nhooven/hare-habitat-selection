@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 21 Apr 2026
 # COMPLETED: 01 Jun 2026
-# LAST MODIFIED: 06 Aug 2026
+# LAST MODIFIED: 12 Aug 2026
 # R VERSION: 4.5.2
 
 # ______________________________________________________________________________
@@ -121,6 +121,46 @@ on.less10 <- n.used.on$track_season_post[n.used.on$n.used < 10] # n = 2
 
 data.off.2 <- data.off.1 |> filter(track_season_post %notin% off.less10)
 data.on.2 <- data.on.1 |> filter(track_season_post %notin% on.less10)
+
+# ______________________________________________________________________________
+# 5. Means/SDs for use/available, by treatment ----
+# ______________________________________________________________________________
+
+ua.summaries.off <- data.off.2 |>
+  
+  dplyr::select(c.trt, case, cc:dEdge) |>
+  
+  pivot_longer(cols = cc:dEdge) |>
+  
+  group_by(case, c.trt, name) |>
+  
+  summarize(mean = mean(value),
+            sd = sd(value)) |>
+  
+  ungroup() |>
+  
+  pivot_wider(names_from = case,
+              values_from = c(mean, sd))
+
+write.table(ua.summaries.off, "clipboard", sep = "\t")
+
+ua.summaries.on <- data.on.2 |>
+  
+  dplyr::select(c.trt, case, cc:dEdge) |>
+  
+  pivot_longer(cols = cc:dEdge) |>
+  
+  group_by(case, c.trt, name) |>
+  
+  summarize(mean = mean(value),
+            sd = sd(value)) |>
+  
+  ungroup() |>
+  
+  pivot_wider(names_from = case,
+              values_from = c(mean, sd))
+
+write.table(ua.summaries.on, "clipboard", sep = "\t")
 
 # ______________________________________________________________________________
 # 5. Extract attributes to bind in later ----
