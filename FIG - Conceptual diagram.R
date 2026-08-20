@@ -151,9 +151,15 @@ plot_panel_1 <- function (.rast, .sf, .legend = F) {
           legend.title.position = "right",
           legend.title = element_text(hjust = 0.5,
                                       angle = 270,
+<<<<<<< HEAD
                                       size = 8),
           legend.key.width = unit(0.40, "cm"),
           legend.key.height = unit(0.65, "cm"),
+=======
+                                      size = 5),
+          legend.key.width = unit(0.15, "cm"),
+          legend.key.height = unit(0.35, "cm"),
+>>>>>>> 9f59223f45d4ff38b02df270410863a8b9975ca0
           legend.key.spacing = unit(0.1, "cm"),
           plot.margin = margin(0.5, 0.5, 0.5, 0.5, unit = "cm"))
   
